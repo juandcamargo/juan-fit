@@ -1171,8 +1171,8 @@ const STORE_KEY = 'juanfit_state_v1';
    leer/escribir la fila de un usuario autenticado. Por eso el acceso pide correo (magic link):
    ver README.md y schema.sql para los pasos exactos de configuración.
    Si dejas las llaves vacías, la app sigue funcionando normal (solo local, sin sincronización). */
-const SUPABASE_URL = '';
-const SUPABASE_ANON_KEY = '';
+const SUPABASE_URL = 'https://zcabuovmyluigahtawvh.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_Qp7dbe8AbuO2CLoNdFSqDw_027YK9vu';
 const supabaseClient = (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
