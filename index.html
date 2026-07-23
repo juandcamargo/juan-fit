@@ -924,6 +924,7 @@ const EXTRA_ITEMS = {
     {name:'Donut', kcal:260, carbs:31, sugar:15, addedSugar:15, fat:14, sat:6, protein:3, sodium:210, fiber:1},
     {name:'Flan o postre de leche', kcal:220, carbs:33, sugar:30, addedSugar:24, fat:7, sat:3.5, protein:5, sodium:120, fiber:0},
     {name:'Brownie', kcal:280, carbs:34, sugar:26, addedSugar:24, fat:15, sat:7, protein:3, sodium:150, fiber:1.5},
+    {name:'Bocadillo veleño', kcal:130, carbs:33, sugar:30, addedSugar:28, fat:0, sat:0, protein:0, sodium:5, fiber:1},
   ],
   bebida_azucarada: [
     {name:'Gaseosa (lata 350 ml)', kcal:140, carbs:39, sugar:39, addedSugar:39, fat:0, sat:0, protein:0, sodium:15, fiber:0, caffeine:35},
@@ -1036,31 +1037,31 @@ const DEFAULT_MEAL_PLAN = {
   lunes: {
     desayuno: {name:'Huevos fritos, arepa y aguacate', desc:'3 huevos fritos, 1 arepa de 90g y 50g de aguacate. Usar máximo 5ml de aceite para los huevos', kcal:528, p:34, c:44, f:24},
     almuerzo: {name:'Pasta con carne asada', desc:'150g de carne asada magra, 110g de pasta (peso en seco), salsa de tomate natural, 30g de aguacate y 5g de chimichurri', kcal:790, p:53, c:93, f:23},
-    batido: {name:'Batido post-entreno', desc:'1 scoop de proteína (36g), 60g de avena, 1 banano pequeño (110g), 5g de creatina, agua, hielo y canela', kcal:460, p:31, c:69, f:7},
+    batido: {name:'Batido post-entreno', desc:'1½ scoops de proteína (54g de polvo) en agua', kcal:220, p:33, c:10, f:5},
     cena: {name:'Pechuga de pollo con pasta', desc:'100g de pechuga de pollo, 45g de pasta (peso en seco), salsa de tomate, champiñones, espinaca y 3ml de aceite de oliva', kcal:405, p:36, c:42, f:10},
   },
   martes: {
     desayuno: {name:'Huevos pericos, arepa y aguacate', desc:'3 huevos revueltos con tomate y cebolla, 1 arepa de 90g y 50g de aguacate. Usar máximo 5ml de aceite', kcal:543, p:35, c:47, f:24},
     almuerzo: {name:'Cordon Bleu con arroz', desc:'Cordon Bleu de 140g de pechuga, 260g de arroz blanco cocido, ensalada, rúgula, tomates cherry y 30g de aguacate. Preparar al horno o airfryer, sin aceite adicional', kcal:780, p:43, c:88, f:27},
-    batido: {name:'Batido post-entreno', desc:'1 scoop de proteína (36g), 60g de avena, 1 banano pequeño (110g), 5g de creatina, agua, hielo y canela', kcal:460, p:31, c:69, f:7},
+    batido: {name:'Batido post-entreno', desc:'1½ scoops de proteína (54g de polvo) en agua', kcal:220, p:33, c:10, f:5},
     cena: {name:'Cordon Bleu con ensalada', desc:'Cordon Bleu de 120g de pechuga, ensalada grande con rúgula, tomate cherry y 40g de aguacate', kcal:390, p:34, c:18, f:20},
   },
   miercoles: {
     desayuno: {name:'Huevos fritos, arepa y aguacate', desc:'3 huevos fritos, 1 arepa de 90g y 50g de aguacate. Usar máximo 5ml de aceite', kcal:528, p:34, c:44, f:24},
     almuerzo: {name:'Carne y papa', desc:'150g de carne asada, 400g de papa en airfryer y 100g de guacamole. No agregar aceite adicional a las papas', kcal:770, p:52, c:77, f:29},
-    batido: {name:'Batido post-entreno', desc:'1 scoop de proteína (36g), 60g de avena, 1 banano pequeño (110g), 5g de creatina, agua, hielo y canela', kcal:460, p:31, c:69, f:7},
+    batido: {name:'Batido post-entreno', desc:'1½ scoops de proteína (54g de polvo) en agua', kcal:220, p:33, c:10, f:5},
     cena: {name:'Carne y papa', desc:'120g de carne asada, 200g de papa en airfryer y ensalada sin aderezo calórico', kcal:425, p:40, c:40, f:11},
   },
   jueves: {
     desayuno: {name:'Huevos pericos, arepa y aguacate', desc:'3 huevos revueltos con tomate y cebolla, 1 arepa de 90g y 50g de aguacate. Usar máximo 5ml de aceite', kcal:543, p:35, c:47, f:24},
     almuerzo: {name:'Sudado de carne', desc:'Sudado con 150g de carne, 180g de papa, 180g de arroz blanco cocido, 40g de aguacate y hogao', kcal:750, p:51, c:85, f:21},
-    batido: {name:'Batido post-entreno', desc:'1 scoop de proteína (36g), 60g de avena, 1 banano pequeño (110g), 5g de creatina, agua, hielo y canela', kcal:460, p:31, c:69, f:7},
+    batido: {name:'Batido post-entreno', desc:'1½ scoops de proteína (54g de polvo) en agua', kcal:220, p:33, c:10, f:5},
     cena: {name:'Sudado de carne', desc:'Sudado con 120g de carne, 100g de papa, 80g de arroz blanco cocido y hogao', kcal:440, p:38, c:43, f:12},
   },
   viernes: {
     desayuno: {name:'Huevos fritos, arepa y aguacate', desc:'3 huevos fritos, 1 arepa de 90g y 50g de aguacate. Usar máximo 5ml de aceite', kcal:528, p:34, c:44, f:24},
     almuerzo: {name:'Frijoles y carne asada', desc:'150g de carne asada, 100g de fríjoles cocidos, 200g de arroz blanco cocido y 40g de aguacate', kcal:750, p:57, c:82, f:20},
-    batido: {name:'Batido post-entreno', desc:'1 scoop de proteína (36g), 60g de avena, 1 banano pequeño (110g), 5g de creatina, agua, hielo y canela', kcal:460, p:31, c:69, f:7},
+    batido: {name:'Batido post-entreno', desc:'1½ scoops de proteína (54g de polvo) en agua', kcal:220, p:33, c:10, f:5},
     cena: {name:'Pollo, arroz y aguacate', desc:'110g de pechuga de pollo, 120g de arroz blanco cocido, 40g de aguacate y ensalada', kcal:430, p:40, c:43, f:10},
   },
 };
@@ -1365,30 +1366,41 @@ function baseActivityFactor(dailySteps, jobType){
 }
 /* Incremento fijo por seguir la rutina estándar de la app (5 días de fuerza + cardio corto tras el entreno) */
 const TRAINING_FACTOR_INCREMENT = 0.17;
-/* kcal/min por tipo de sesión (punto medio de los rangos dados), ajustados a un peso de referencia de 75kg */
+/* kcal/min por tipo de sesión (punto medio de los rangos dados), ajustados a un peso de referencia de 75kg
+   — usado únicamente por el módulo de sesiones extra opcionales (ver más abajo), no por el cálculo de
+   entrenamientos abajo, que usa la fórmula de METs por día. */
 const EXERCISE_KCAL_PER_MIN = { fuerza_ligera:3.5, fuerza_moderada:5.0, fuerza_intensa:7.0, cardio_ligero:5.0, cardio_moderado:7.5, cardio_intenso:10.5 };
 function sessionKcal(type, minutes, weightKg){ return (EXERCISE_KCAL_PER_MIN[type]||5.0) * (weightKg/75) * minutes; }
+/* ---- Gasto calórico de los entrenamientos: calorías activas netas = (MET-1) x 3.5 x peso / 200 x minutos.
+   Se resta 1 MET porque el gasto en reposo de ese tiempo ya está incluido en el gasto base diario (BMR).
+   Siempre usa el peso actual (weightKg viene del último registro corporal). ---- */
+const STRENGTH_MET_BY_DAY = { 1:4.9, 2:5.55, 4:5.15, 5:5.55, 6:4.62 }; // Día 1/2/4/5/6 del split de fuerza
+const STRENGTH_MINUTES_DEFAULT = 60; // la app no registra duración real de las rutinas de fuerza en gym
+const CARDIO_MET = { suave:4.5, moderado:6, alto:8, hiit:9.5 };
+function activeKcal(met, weightKg, minutes){ return (met-1)*3.5*weightKg/200*minutes; }
+function roundToNearest5(n){ return Math.round(n/5)*5; }
 function exerciseKcalForLog(log, weightKg){
   let kcal = 0;
   if(log.day===3){
-    if(log.cardio?.minutes) kcal += sessionKcal(log.cardio.type==='hiit'?'cardio_intenso':'cardio_moderado', log.cardio.minutes, weightKg);
+    // Día exclusivo de cardio: no se suma ninguna rutina de fuerza
+    if(log.cardio?.minutes){
+      const cardioIntensity = log.cardio.type==='hiit' ? 'hiit' : 'moderado'; // LISS de esta app ≈ ritmo moderado sostenido
+      kcal += activeKcal(CARDIO_MET[cardioIntensity], weightKg, log.cardio.minutes);
+    }
   } else if(log.homeMode){
     const routine = HOME_ROUTINES[log.day];
-    kcal += sessionKcal('fuerza_moderada', routine?routine.mins:20, weightKg);
+    const met = STRENGTH_MET_BY_DAY[log.day] || 5.0;
+    kcal += activeKcal(met, weightKg, routine?routine.mins:20);
   } else {
-    let mainMinutes = 0;
-    Object.entries(log.exercises||{}).forEach(([exId,data])=>{
-      const activeId = data.swappedTo||exId;
-      const ex = EXERCISES[activeId]||EXERCISES[exId];
-      const restSec = ex?.rest||90;
-      const setsCount = (data.sets||[]).filter(Boolean).length;
-      mainMinutes += setsCount*(restSec+45)/60;
-    });
-    kcal += sessionKcal('fuerza_moderada', mainMinutes, weightKg);
+    const met = STRENGTH_MET_BY_DAY[log.day] || 5.0;
+    kcal += activeKcal(met, weightKg, STRENGTH_MINUTES_DEFAULT);
   }
-  if(log.postCardio?.minutes) kcal += sessionKcal('cardio_moderado', log.postCardio.minutes, weightKg);
-  if(log.phase && log.phase!=='warmup') kcal += sessionKcal('fuerza_ligera', 10, weightKg);
-  return kcal;
+  // Cardio adicional (post-entreno), solo si quedó registrado — nunca se asume por defecto
+  if(log.postCardio?.minutes){
+    const intensity = log.postCardio.intensity || 'moderado';
+    kcal += activeKcal(CARDIO_MET[intensity]||CARDIO_MET.moderado, weightKg, log.postCardio.minutes);
+  }
+  return roundToNearest5(kcal);
 }
 function metKcal(met, weightKg, minutes){ return met*3.5*weightKg/200*minutes; }
 /* Sesiones extra opcionales: actividad adicional a la rutina del día, siempre informativa (ver punto 12 de la lógica nutricional) */
@@ -4300,7 +4312,7 @@ function deleteWeighIn(date){
 }
 
 function openSleepLog(date){
-  const s = STATE.sleep[date] || {totalMin:400, rem:80, light:220, deep:60, awake:40};
+  const s = STATE.sleep[date] || {totalMin:0, rem:0, light:0, deep:0, awake:0};
   const hm = (mins)=>({h: Math.floor((mins||0)/60), m: (mins||0)%60});
   const pairField = (label, idPrefix, mins) => {
     const v = hm(mins);
@@ -4650,8 +4662,9 @@ function dayGoalStatus(iso){
   const targets = currentMacros(iso);
   const nut = STATE.nutrition[iso];
   const hasNutrition = !!(nut && nut.meals && nut.meals.length);
-  const kcalSum = hasNutrition ? nut.meals.reduce((a,m)=>a+m.kcal,0) : 0;
-  const pSum = hasNutrition ? nut.meals.reduce((a,m)=>a+m.p,0) : 0;
+  const extraSums = extrasForDate(iso).reduce((a,e)=>({kcal:a.kcal+(e.kcal||0), p:a.p+(e.protein||0)}),{kcal:0,p:0});
+  const kcalSum = (hasNutrition ? nut.meals.reduce((a,m)=>a+m.kcal,0) : 0) + extraSums.kcal;
+  const pSum = round1((hasNutrition ? nut.meals.reduce((a,m)=>a+m.p,0) : 0) + extraSums.p);
   const calPct = hasNutrition ? clamp(kcalSum/targets.kcal, 0, 1.15) : 0;
   const proteinPct = hasNutrition ? clamp(pSum/targets.p, 0, 1.15) : 0;
   const log = STATE.workoutLogs.find(w=>w.date===iso);
@@ -4662,7 +4675,11 @@ function dayGoalStatus(iso){
   const sleepGoal = STATE.profile.sleepGoalHours || 7;
   const sleepPct = sleepEntry ? clamp((sleepEntry.totalMin/60)/sleepGoal, 0, 1.15) : 0;
   const sleepHit = sleepEntry ? (sleepEntry.totalMin/60) >= sleepGoal*0.9 : false;
-  return { calPct, proteinPct, exercisePct, sleepPct, calHit, proteinHit, sleepHit, exerciseHit: exercisePct===1, hasData: hasNutrition || !!log || !!sleepEntry };
+  const balanceLog = STATE.dailyBalanceLog[iso];
+  const tdee = balanceLog?.tdee ?? (latestBodyLog()?.tdee || null);
+  const balance = balanceLog ? balanceLog.balance : (hasNutrition && tdee!=null ? Math.round(kcalSum - tdee) : null);
+  return { calPct, proteinPct, exercisePct, sleepPct, calHit, proteinHit, sleepHit, exerciseHit: exercisePct===1,
+    hasData: hasNutrition || !!log || !!sleepEntry, kcalSum: Math.round(kcalSum), pSum, sleepEntry, sleepGoal, balance, hasNutrition };
 }
 function calDayRings(status, size=36){
   const stroke = 2.5, gap = 1.2;
@@ -4755,11 +4772,15 @@ function openHistoryDayPeek(date){
   } else {
     body = `<p class="muted">No entrenaste este día.</p>`;
   }
-  const goalsHtml = date>todayISO() ? '' : `<div class="row" style="gap:18px;margin-top:10px;flex-wrap:wrap">
-    <div class="stat-mini"><b style="color:${status.calHit?'var(--ring-cal)':'var(--ink-faint)'}">${status.calHit?'Sí':'—'}</b><span>Calorías</span></div>
-    <div class="stat-mini"><b style="color:${status.proteinHit?'var(--ring-protein)':'var(--ink-faint)'}">${status.proteinHit?'Sí':'—'}</b><span>Proteína</span></div>
-    <div class="stat-mini"><b style="color:${status.exerciseHit?'var(--ring-exercise)':'var(--ink-faint)'}">${status.exerciseHit?'Sí':'—'}</b><span>Ejercicio</span></div>
-    <div class="stat-mini"><b style="color:${status.sleepHit?'var(--sleep)':'var(--ink-faint)'}">${status.sleepHit?'Sí':'—'}</b><span>Sueño</span></div>
+  const sleepText = status.sleepEntry ? `${round1(status.sleepEntry.totalMin/60)}h <span class="faint">/ ${status.sleepGoal}h meta</span>` : 'Sin registro';
+  const proteinText = status.hasNutrition ? `${status.pSum}g <span class="faint">/ ${currentMacros(date).p}g meta</span>` : 'Sin registro';
+  const balanceText = status.balance==null ? 'Sin datos suficientes'
+    : `<b style="color:${balanceStatusColor(status.balance)}">${status.balance>0?'+':''}${status.balance} kcal</b> ${status.balance>0?'(superávit)':'(déficit)'}`;
+  const goalsHtml = date>todayISO() ? '' : `<div class="divider" style="margin:14px 0"></div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div class="row between"><span class="faint">Sueño</span><span>${sleepText}</span></div>
+    <div class="row between"><span class="faint">Proteína consumida</span><span>${proteinText}</span></div>
+    <div class="row between"><span class="faint">Balance calórico</span><span>${balanceText}</span></div>
   </div>`;
   openSheet(`<h3>${fmtDateLong(date)}</h3>${body}${goalsHtml}${isToday?`<button class="btn primary block" style="margin-top:14px" data-action="nav" data-tab="hoy">Ir a Hoy</button>`:''}`);
 }
