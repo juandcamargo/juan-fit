@@ -9,11 +9,12 @@ Este README son los pasos para dejarla desplegada en Vercel con Supabase conecta
 1. Ve a [supabase.com](https://supabase.com) → crea una cuenta (con GitHub es lo más rápido) → **New project**.
 2. Elige cualquier nombre y contraseña de base de datos (no la necesitarás luego, Supabase la guarda). Espera ~2 minutos a que se cree.
 3. En el menú lateral, ve a **SQL Editor** → **New query**, pega todo el contenido del archivo [`schema.sql`](./schema.sql) de esta carpeta, y dale **Run**. Esto crea la tabla `app_state` con seguridad por usuario (nadie más puede ver tus datos, ni siquiera con la llave pública).
-4. Ve a **Project Settings → API**. Copia dos valores:
-   - **Project URL**
-   - **anon public key**
-5. Ve a **Authentication → Providers** y confirma que **Email** esté activado (lo está por defecto). No hace falta contraseña: la app usa "magic link" (un enlace que llega al correo).
-6. Ve a **Authentication → URL Configuration** y dejaremos esto pendiente hasta el paso 3 (necesitas la URL final de Vercel primero) — hay una nota más abajo recordándotelo.
+4. Copia dos valores — la forma más simple es con el botón **"Connect"** (arriba del dashboard del proyecto) → pestaña **"Framework"** → deja cualquier framework seleccionado (no importa cuál, los valores son los mismos) → baja hasta el paso **"Set environment variables"**. Ahí vas a ver:
+   - **`SUPABASE_URL`** (formato `https://xxxxx.supabase.co`)
+   - **`SUPABASE_PUBLISHABLE_KEY`** (empieza con `sb_publishable_...`) — esta es la que usamos como "anon key" en el código.
+   - Ignora **`SUPABASE_SECRET_KEY`** — esa nunca se usa en el navegador ni se pega en este proyecto.
+5. Ve a **Authentication** (ícono en la barra lateral) y confirma que **Email** esté activado (lo está por defecto). No hace falta contraseña: la app usa "magic link" (un enlace que llega al correo).
+6. Busca dentro de Authentication la sección de **URL Configuration** (el nombre exacto puede variar un poco según la versión del panel). Dejaremos esto pendiente hasta el paso 3 (necesitas la URL final de Vercel primero) — hay una nota más abajo recordándotelo. Si no la encuentras, entra directo a `https://supabase.com/dashboard/project/TU-PROJECT-REF/auth/url-configuration` (reemplaza `TU-PROJECT-REF` por el que aparece en tu Project URL, la parte antes de `.supabase.co`).
 
 ## 2. Subir el código a GitHub (repo público)
 
@@ -50,7 +51,7 @@ git push -u origin main
    const SUPABASE_URL = '';
    const SUPABASE_ANON_KEY = '';
    ```
-3. Pega ahí el **Project URL** y la **anon public key** que copiaste en el paso 1.4.
+3. Pega ahí el **Project URL** y la **Publishable key** que copiaste en el paso 1.4.
 4. Guarda, sube el cambio a GitHub (arrastrando el archivo de nuevo, o `git add -A && git commit -m "conectar supabase" && git push`). Vercel vuelve a desplegar solo en unos segundos.
 
 ## 5. Usar la app en tu iPhone
