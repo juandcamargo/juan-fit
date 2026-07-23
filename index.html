@@ -878,6 +878,7 @@ const FOODS = [
   {id:'aceite', name:'Aceite (oliva/vegetal)', per:100, unitLabel:'100 ml', kcal:884, p:0, c:0, f:100, kw:['aceite']},
   {id:'brocoli', name:'Brócoli cocido', per:100, unitLabel:'100 g', kcal:35, p:2.4, c:7.2, f:0.4, kw:['brocoli']},
   {id:'ensalada_verde', name:'Ensalada verde variada', per:100, unitLabel:'100 g', kcal:20, p:1.5, c:3.5, f:0.2, kw:['ensalada','lechuga']},
+  {id:'banano', name:'Banano', per:1, unitLabel:'1 banano mediano (~120 g)', kcal:105, p:1.3, c:27, f:0.4, kw:['banano','banana']},
   {id:'batido_proteina', name:'Batido de proteína (1 scoop + agua)', per:1, unitLabel:'1 cuchara medidora, 36 g', kcal:152, p:29, c:7.1, f:4.3, kw:['batido','whey','proteina en polvo']},
   {id:'batido_completo', name:'Batido proteína + leche + banano', per:1, unitLabel:'1 batido', kcal:407, p:38, c:46, f:13, kw:['batido con leche','batido banano']},
 ];
@@ -895,6 +896,7 @@ const SNACK_SUGGESTIONS = [
   {foodId:'avena', qty:40},
   {foodId:'pan_integral', qty:40},
   {foodId:'aguacate', qty:50},
+  {foodId:'banano', qty:1},
 ];
 
 /* ============================================================
@@ -2327,7 +2329,7 @@ function muscleLoadThisWeek(){
 function renderHoy(){
   const iso = todayISO();
   const sched = scheduleForToday();
-  const sleepEntry = STATE.sleep[addDays(iso,-1)] || STATE.sleep[iso];
+  const sleepEntry = STATE.sleep[iso] || STATE.sleep[addDays(iso,-1)];
   const rscore = recoveryScore(sleepEntry);
   const advice = recoveryAdvice(rscore, sleepEntry? sleepEntry.totalMin/60 : null);
   const targets = currentMacros();
