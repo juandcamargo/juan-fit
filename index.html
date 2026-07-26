@@ -159,6 +159,8 @@ button{ font-family: inherit; }
 .card:active{ transform: scale(0.985); }
 .card.tight{ padding:14px; }
 .card.flush{ padding:0; overflow:hidden; }
+.card.flush .food-item{ padding-left:16px; padding-right:16px; }
+.card.flush .empty-state{ padding:20px 16px; }
 .row{ display:flex; align-items:center; gap:12px; }
 .row.between{ justify-content:space-between; }
 .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
@@ -882,7 +884,35 @@ const FOODS = [
   {id:'batido_proteina', name:'Batido de proteína (1 scoop + agua)', per:1, unitLabel:'1 cuchara medidora, 36 g', kcal:152, p:29, c:7.1, f:4.3, kw:['batido','whey','proteina en polvo']},
   {id:'batido_completo', name:'Batido proteína + leche + banano', per:1, unitLabel:'1 batido', kcal:407, p:38, c:46, f:13, kw:['batido con leche','batido banano']},
 ];
-function findFood(id){ return FOODS.find(f=>f.id===id); }
+function findFood(id){ return FOODS.find(f=>f.id===id) || window.__fdcCache[id]; }
+
+/* ---- Búsqueda en USDA FoodData Central: complementa el banco local de FOODS con miles de alimentos genéricos ---- */
+const USDA_FDC_API_KEY = 'DEMO_KEY'; // límite de 30 solicitudes/hora — si se agota, genera una llave propia gratis en https://fdc.nal.usda.gov/api-key-signup.html
+window.__fdcCache = window.__fdcCache || {};
+async function searchFDC(query){
+  try{
+    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${USDA_FDC_API_KEY}&query=${encodeURIComponent(query)}&pageSize=8&dataType=Foundation,SR%20Legacy`;
+    const res = await fetch(url);
+    if(!res.ok) return [];
+    const data = await res.json();
+    const getNutrient = (fn, name)=> fn.find(n=>n.nutrientName===name)?.value;
+    return (data.foods||[]).map(food=>{
+      const kcal = getNutrient(food.foodNutrients, 'Energy');
+      const p = getNutrient(food.foodNutrients, 'Protein');
+      const c = getNutrient(food.foodNutrients, 'Carbohydrate, by difference');
+      const f = getNutrient(food.foodNutrients, 'Total lipid (fat)');
+      if(kcal==null || p==null || c==null || f==null) return null; // entrada sin macros completos, no sirve para el registro
+      const id = 'fdc_'+food.fdcId;
+      const name = food.description.charAt(0).toUpperCase()+food.description.slice(1).toLowerCase();
+      const item = {id, name, per:100, unitLabel:'100 g', kw:[], kcal:Math.round(kcal), p:round1(p), c:round1(c), f:round1(f), source:'usda'};
+      window.__fdcCache[id] = item;
+      return item;
+    }).filter(Boolean);
+  }catch(e){
+    console.error('Búsqueda en USDA FoodData Central falló:', e);
+    return [];
+  }
+}
 
 /* ---- Snacks sugeridos: porciones realistas para tapar el hueco de macros del día ---- */
 const SNACK_SUGGESTIONS = [
@@ -3189,17 +3219,33 @@ function openFoodSearch(){
     <div id="foodResults" style="margin-top:10px;max-height:44vh;overflow-y:auto"></div>
   `);
   const input = $('#foodSearchInput');
-  const renderResults = (q)=>{
-    const ql = (q||'').toLowerCase();
-    const matches = ql.length ? FOODS.filter(f=> f.name.toLowerCase().includes(ql) || f.kw.some(k=>k.includes(ql))) : FOODS.slice(0,8);
-    $('#foodResults').innerHTML = matches.map(f=>`
+  const rowHtml = (f)=>`
       <div class="swap-option" role="button" tabindex="0" data-action="pick-food" data-foodid="${f.id}">
-        <div><b style="font-size:13.5px">${f.name}</b><div class="faint">${f.kcal} kcal / ${f.unitLabel}</div></div>
+        <div><b style="font-size:13.5px">${f.name}</b><div class="faint">${f.kcal} kcal / ${f.unitLabel}${f.source==='usda'?' · USDA':''}</div></div>
         <span class="faint">P${f.p} C${f.c} G${f.f}</span>
-      </div>`).join('') || `<div class="empty-state"><span>Sin resultados</span></div>`;
+      </div>`;
+  let searchToken = 0;
+  const renderResults = async (q)=>{
+    const myToken = ++searchToken;
+    const ql = (q||'').toLowerCase().trim();
+    const local = ql.length ? FOODS.filter(f=> f.name.toLowerCase().includes(ql) || f.kw.some(k=>k.includes(ql))) : FOODS.slice(0,8);
+    const box = $('#foodResults');
+    if(!box) return;
+    box.innerHTML = local.map(rowHtml).join('') || (ql.length<3 ? `<div class="empty-state"><span>Sin resultados</span></div>` : `<div class="empty-state"><span>Buscando en la base de datos USDA...</span></div>`);
+    if(ql.length<3) return;
+    const remote = await searchFDC(ql);
+    if(myToken!==searchToken) return; // el usuario ya escribió algo más — descartar esta respuesta
+    const box2 = $('#foodResults');
+    if(!box2) return;
+    const remoteHtml = remote.length ? `<p class="faint" style="margin:12px 0 4px;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em">Base de datos USDA</p>${remote.map(rowHtml).join('')}` : '';
+    box2.innerHTML = local.map(rowHtml).join('') + remoteHtml || `<div class="empty-state"><span>Sin resultados</span></div>`;
   };
   renderResults('');
-  input.addEventListener('input', ()=>renderResults(input.value));
+  let debounceTimer;
+  input.addEventListener('input', ()=>{
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(()=>renderResults(input.value), 350);
+  });
 }
 
 function pickFoodQty(foodId){
