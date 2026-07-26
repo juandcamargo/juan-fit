@@ -3176,9 +3176,14 @@ function quickAddSnack(foodId, qty){
   render();
 }
 
+function loggingDateNote(){
+  const d = window.__loggingDate;
+  return (d && d!==todayISO()) ? `<p class="faint" style="margin:-4px 0 10px">Para ${fmtDateLong(d)}</p>` : '';
+}
 function openFoodSearch(){
   openSheet(`
     <h3>Buscar alimento</h3>
+    ${loggingDateNote()}
     <input type="text" id="foodSearchInput" placeholder="pollo, arroz, arepa, batido..." autofocus>
     <div id="foodResults" style="margin-top:10px;max-height:44vh;overflow-y:auto"></div>
   `);
@@ -3203,7 +3208,7 @@ function pickFoodQty(foodId){
     <p class="faint">Base: ${f.kcal} kcal por ${f.unitLabel}</p>
     <label class="field"><span>Cantidad (${f.per===1?'unidades':'gramos'})</span><input type="text" id="qtyInput" value="${f.per}" inputmode="decimal"></label>
     <div id="qtyPreview" class="row" style="gap:14px;margin:10px 0"></div>
-    <button class="btn nutrition block" data-action="confirm-food" data-foodid="${f.id}">Agregar a hoy</button>
+    <button class="btn nutrition block" data-action="confirm-food" data-foodid="${f.id}">${(window.__loggingDate && window.__loggingDate!==todayISO())?'Agregar a '+fmtDateShort(window.__loggingDate):'Agregar a hoy'}</button>
   `);
   const preview = ()=>{
     const qty = parseDecimal($('#qtyInput').value)||0;
@@ -3221,15 +3226,17 @@ function confirmFood(foodId){
   const f = findFood(foodId);
   const qty = parseDecimal($('#qtyInput').value)||f.per;
   const m = foodMacros(f, qty);
-  const nut = ensureNutritionDay(todayISO());
+  const dateIso = window.__loggingDate || todayISO();
+  const nut = ensureNutritionDay(dateIso);
   nut.meals.push({id:uid(), name:`${f.name} (${qty}${f.per===1?' u':'g'})`, ...m});
   consumePlanSlot(nut);
   saveState();
-  touchStreak(todayISO());
+  touchStreak(dateIso);
   addXP(5);
   checkBadges();
+  window.__loggingDate = null;
   closeSheet();
-  toast('Comida registrada', {icon:'utensils'});
+  toast(dateIso===todayISO() ? 'Comida registrada' : `Comida registrada para ${fmtDateShort(dateIso)}`, {icon:'utensils'});
   render();
 }
 
@@ -3259,6 +3266,7 @@ function estimateFromText(text){
 function openFoodDescribe(){
   openSheet(`
     <h3>Describe tu plato</h3>
+    ${loggingDateNote()}
     <p class="faint">Ej: "pechuga de pollo 200g, arroz, aguacate y ensalada". Es una <b>estimación</b> por coincidencia de texto, no una foto real con IA — ajusta cantidades si hace falta.</p>
     <textarea id="describeInput" placeholder="Describe qué comiste..."></textarea>
     <button class="btn nutrition block" style="margin-top:10px" data-action="run-estimate">Estimar macros</button>
@@ -3285,23 +3293,26 @@ function runEstimate(){
   $('#estimateResult').innerHTML = `${rows}
     <div class="divider"></div>
     <div class="row between"><b>Total estimado</b><span class="faint">${total.kcal} kcal · P${round1(total.p)} C${round1(total.c)} G${round1(total.f)}</span></div>
-    <button class="btn primary block" style="margin-top:10px" data-action="confirm-estimate">Agregar al registro de hoy</button>`;
+    <button class="btn primary block" style="margin-top:10px" data-action="confirm-estimate">${(window.__loggingDate && window.__loggingDate!==todayISO())?'Agregar a '+fmtDateShort(window.__loggingDate):'Agregar al registro de hoy'}</button>`;
 }
 
 function confirmEstimate(){
   const found = window.__lastEstimate||[];
   if(!found.length) return;
   const total = found.reduce((a,f)=>{ const m=foodMacros(f.food,f.qty); return {kcal:a.kcal+m.kcal,p:a.p+m.p,c:a.c+m.c,f:a.f+m.f}; },{kcal:0,p:0,c:0,f:0});
-  const nut = ensureNutritionDay(todayISO());
+  const dateIso = window.__loggingDate || todayISO();
+  const nut = ensureNutritionDay(dateIso);
   nut.meals.push({id:uid(), name:'Plato descrito ('+found.map(f=>f.food.name).join(', ')+')', kcal:Math.round(total.kcal), p:round1(total.p), c:round1(total.c), f:round1(total.f)});
   consumePlanSlot(nut);
-  saveState(); touchStreak(todayISO()); addXP(5); checkBadges();
-  closeSheet(); toast('Plato registrado con estimación', {icon:'utensils'}); render();
+  saveState(); touchStreak(dateIso); addXP(5); checkBadges();
+  window.__loggingDate = null;
+  closeSheet(); toast(dateIso===todayISO() ? 'Plato registrado con estimación' : `Plato registrado para ${fmtDateShort(dateIso)}`, {icon:'utensils'}); render();
 }
 
 function openFoodPhoto(){
   openSheet(`
     <h3>Ingresar manualmente</h3>
+    ${loggingDateNote()}
     <p class="faint">Escribe las macros de tu plato si ya las conoces (de una etiqueta, otra app, o porque las calculaste tú). Adjuntar una foto de referencia es opcional.</p>
     <label class="field"><span>Nombre del plato</span><input type="text" id="photoMealName" placeholder="Ej: Almuerzo"></label>
     <div class="grid3">
@@ -3336,7 +3347,8 @@ function openFoodPhoto(){
   ['pKcal','pP','pC','pF'].forEach(id=> $('#'+id).addEventListener('input', checkConsistency));
 }
 function confirmPhotoMeal(){
-  const nut = ensureNutritionDay(todayISO());
+  const dateIso = window.__loggingDate || todayISO();
+  const nut = ensureNutritionDay(dateIso);
   const p = parseDecimal($('#pP').value)||0, c = parseDecimal($('#pC').value)||0, f = parseDecimal($('#pF').value)||0;
   const enteredKcal = parseDecimal($('#pKcal').value)||0;
   const macroKcal = Math.round(p*4 + c*4 + f*9);
@@ -3348,8 +3360,23 @@ function confirmPhotoMeal(){
   });
   window.__pendingPhoto = null;
   consumePlanSlot(nut);
-  saveState(); touchStreak(todayISO()); addXP(5); checkBadges();
-  closeSheet(); toast('Comida guardada', {icon:'camera'}); render();
+  saveState(); touchStreak(dateIso); addXP(5); checkBadges();
+  window.__loggingDate = null;
+  closeSheet(); toast(dateIso===todayISO() ? 'Comida guardada' : `Comida guardada para ${fmtDateShort(dateIso)}`, {icon:'camera'}); render();
+}
+
+/* ---------- Registro retroactivo de comidas (días anteriores no registrados) ---------- */
+function openLogMealForDay(date){
+  window.__loggingDate = date;
+  openSheet(`
+    <h3>Registrar comida de ${fmtDateShort(date)}</h3>
+    <p class="faint">Se guardará como consumo de ese día, no de hoy.</p>
+    <div class="row" style="gap:10px;margin-top:14px">
+      <button class="btn nutrition" style="flex:1" data-action="open-food-search">${icon('search',15,{valign:'-3px'})} Buscar</button>
+      <button class="btn ghost" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
+    </div>
+    <button class="btn ghost block" style="margin-top:8px" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Ingresar manualmente</button>
+  `);
 }
 
 /* ---------- Weekly meal plan: log / alternative / edit ---------- */
@@ -4784,7 +4811,89 @@ function openHistoryDayPeek(date){
     <div class="row between"><span class="faint">Proteína consumida</span><span>${proteinText}</span></div>
     <div class="row between"><span class="faint">Balance calórico</span><span>${balanceText}</span></div>
   </div>`;
-  openSheet(`<h3>${fmtDateLong(date)}</h3>${body}${goalsHtml}${isToday?`<button class="btn primary block" style="margin-top:14px" data-action="nav" data-tab="hoy">Ir a Hoy</button>`:''}`);
+  const editHtml = (date<todayISO()) ? `<div class="divider" style="margin:14px 0"></div>
+  <p class="faint" style="margin-bottom:8px">¿No registraste algo este día? Puedes agregarlo ahora:</p>
+  <div class="row" style="gap:8px;flex-wrap:wrap">
+    <button class="btn nutrition" style="flex:1" data-action="log-meal-for-day" data-date="${date}">Registrar comida</button>
+    <button class="btn strength" style="flex:1" data-action="log-workout-for-day" data-date="${date}">Registrar entreno</button>
+  </div>
+  <button class="btn sleep block" style="margin-top:8px" data-action="open-sleep-log" data-date="${date}">${status.sleepEntry?'Editar':'Registrar'} sueño de este día</button>` : '';
+  openSheet(`<h3>${fmtDateLong(date)}</h3>${body}${goalsHtml}${editHtml}${isToday?`<button class="btn primary block" style="margin-top:14px" data-action="nav" data-tab="hoy">Ir a Hoy</button>`:''}`);
+}
+
+/* ---------- Registro retroactivo de entrenamientos (días anteriores no registrados) ---------- */
+function openLogWorkoutForDay(date){
+  const sched = scheduleForDate(date);
+  const suggestedDay = sched.day || 1;
+  openSheet(`
+    <h3>Registrar entrenamiento de ${fmtDateShort(date)}</h3>
+    <p class="faint">Marca lo que realmente hiciste — no hace falta registrar serie por serie.</p>
+    <label class="field"><span>Día del split</span>
+      <select id="wlDay">
+        ${[1,2,3,4,5,6].map(d=>`<option value="${d}" ${d===suggestedDay?'selected':''}>Día ${d} · ${DAY_ORDER[d]}</option>`).join('')}
+      </select>
+    </label>
+    <div id="wlStrengthFields">
+      <label class="field"><span>Modalidad</span>
+        <select id="wlMode">
+          <option value="full">Completo</option>
+          <option value="short">Corto</option>
+          <option value="home">Rutina en casa</option>
+        </select>
+      </label>
+      <p class="faint" style="margin-top:10px">Cardio post-entreno (opcional)</p>
+      <div class="grid2">
+        <label class="field"><span>Minutos</span><input type="number" id="wlPostCardioMin" placeholder="0"></label>
+        <label class="field"><span>Esfuerzo (1-10)</span><input type="number" id="wlPostCardioRpe" min="1" max="10" placeholder="5"></label>
+      </div>
+    </div>
+    <div id="wlCardioFields" style="display:none">
+      <label class="field"><span>Tipo de cardio</span>
+        <select id="wlCardioType">
+          <option value="liss">LISS 30-40 min</option>
+          <option value="hiit">HIIT 15-20 min</option>
+        </select>
+      </label>
+      <div class="grid2">
+        <label class="field"><span>Minutos</span><input type="number" id="wlCardioMin" placeholder="35"></label>
+        <label class="field"><span>Esfuerzo (1-10)</span><input type="number" id="wlCardioRpe" min="1" max="10" placeholder="6"></label>
+      </div>
+    </div>
+    <button class="btn primary block" style="margin-top:14px" data-action="confirm-workout-for-day" data-date="${date}">Guardar entrenamiento</button>
+  `);
+  const daySelect = $('#wlDay');
+  const toggleFields = ()=>{
+    const isCardio = parseInt(daySelect.value)===3;
+    $('#wlStrengthFields').style.display = isCardio?'none':'';
+    $('#wlCardioFields').style.display = isCardio?'':'none';
+  };
+  toggleFields();
+  daySelect.addEventListener('change', toggleFields);
+}
+function confirmWorkoutForDay(date){
+  const day = parseInt($('#wlDay').value);
+  let log = STATE.workoutLogs.find(w=>w.date===date);
+  if(!log){ log = {id:uid(), date, day, exercises:{}, completed:false}; STATE.workoutLogs.push(log); }
+  log.day = day;
+  if(day===3){
+    const type = $('#wlCardioType').value;
+    const minutes = parseInt($('#wlCardioMin').value)||(type==='hiit'?20:35);
+    log.cardio = { type, minutes, rpe: parseInt($('#wlCardioRpe').value)||6, done:true };
+    log.mode = 'full'; log.homeMode = false;
+  } else {
+    const mode = $('#wlMode').value;
+    log.mode = mode; log.homeMode = mode==='home';
+    const postMin = parseInt($('#wlPostCardioMin').value)||0;
+    if(postMin>0) log.postCardio = { minutes: postMin, rpe: parseInt($('#wlPostCardioRpe').value)||5, done:true };
+  }
+  log.completed = true;
+  saveState();
+  touchStreak(date);
+  addXP(50);
+  checkBadges();
+  closeSheet();
+  toast(`Entrenamiento registrado para ${fmtDateShort(date)}`, {icon:'award'});
+  render();
 }
 
 function toggleNannyOverride(date){
@@ -4871,6 +4980,9 @@ document.addEventListener('click', (e)=>{
     case 'open-food-search': openFoodSearch(); break;
     case 'open-food-describe': openFoodDescribe(); break;
     case 'open-food-photo': openFoodPhoto(); break;
+    case 'log-meal-for-day': openLogMealForDay(el.dataset.date); break;
+    case 'log-workout-for-day': openLogWorkoutForDay(el.dataset.date); break;
+    case 'confirm-workout-for-day': confirmWorkoutForDay(el.dataset.date); break;
     case 'log-plan-meal': logPlanMeal(el.dataset.slot); break;
     case 'open-plan-alt': openPlanAlternative(el.dataset.slot); break;
     case 'edit-meal-plan': editMealPlanScreen(); break;
