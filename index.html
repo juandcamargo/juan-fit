@@ -3076,11 +3076,10 @@ function renderNutricion(){
   const extrasPct = sums.kcal>0 ? Math.round((extraSums.kcal/sums.kcal)*100) : 0;
 
   const weekAdherence = weekDates(iso).map(d=>{
-    const n = STATE.nutrition[d];
-    if(!n || !n.meals.length) return {d, hit:null};
-    const s = n.meals.reduce((a,m)=>a+m.kcal,0);
-    const p = n.meals.reduce((a,m)=>a+m.p,0);
-    return {d, hit: Math.abs(s-targets.kcal)<=targets.kcal*0.12 && p>=targets.p*0.9};
+    const log = STATE.dailyBalanceLog[d];
+    if(!log || log.balance==null) return {d, hit:null};
+    const deficit = -log.balance;
+    return {d, hit: deficit>=100 && deficit<=300};
   });
 
   const planDayKey = todayPlanKey();
@@ -3156,7 +3155,7 @@ function renderNutricion(){
     </div>
 
     <div class="card">
-      <b style="font-size:15px">Cumplimiento de macros (semana)</b>
+      <b style="font-size:15px">Cumplimiento de déficit calórico (semana)</b>
       <div class="row" style="justify-content:space-between;margin-top:12px">
         ${weekAdherence.map(w=>{
           const d = parseISO(w.d);
