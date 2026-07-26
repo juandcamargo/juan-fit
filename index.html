@@ -2467,8 +2467,8 @@ function renderHoy(){
     <div class="divider" style="margin:14px 0"></div>
     <p class="faint" style="font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em">Proyección de cierre del día</p>
     <div class="grid3" style="margin-top:8px">
-      <div class="stat-mini"><b>${cb.projected}</b><span>kcal esperadas hoy</span></div>
       <div class="stat-mini"><b>${bt.fullDay}</b><span>gasto esperado hoy</span></div>
+      <div class="stat-mini"><b>${cb.projected}</b><span>kcal esperadas hoy</span></div>
       <div class="stat-mini"><b style="color:${balanceColor}">${balanceLabel}</b><span>${balanceWord}</span></div>
     </div>
     <div class="row between" style="margin-top:12px;padding:10px 12px;background:var(--surface-2);border-radius:12px">
@@ -2484,6 +2484,7 @@ function renderHoy(){
     <div class="divider" style="margin:12px 0"></div>
     <p class="faint">${trainingNote}</p>
     <div class="row between" style="margin-top:8px"><span class="faint">Gasto base sin entrenamiento</span><b style="font-size:13px">${bt.neatFullDay} kcal</b></div>
+    <div class="row between" style="margin-top:4px"><span class="faint">Gasto base restante del día</span><b style="font-size:13px">${Math.max(0,Math.round(bt.neatFullDay-bt.neatSoFar))} kcal</b></div>
     <div class="row between" style="margin-top:4px"><span class="faint">Comidas pendientes</span><b style="font-size:13px">${cb.pendingKcal} kcal</b></div>
     <p class="faint" style="margin-top:8px;font-size:12px">El déficit o superávit del día se calcula con la proyección completa del día, no con los datos parciales de arriba.</p>
 
