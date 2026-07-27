@@ -1707,16 +1707,22 @@ function todaysCalorieBalance(){
       }
     });
   } else {
-    // Sin plan configurado para hoy (típicamente fin de semana): usar el promedio de lunes a viernes por tipo de comida
+    // Sin plan configurado para hoy (típicamente fin de semana): no hay botones de "Comí esto" por comida,
+    // así que nut.planLogged nunca se marca — comparar contra el total promedio de un día normal (lunes a
+    // viernes) en vez de sumar cada comida de nuevo evita contar dos veces lo que el usuario ya registró
+    // manualmente (Buscar / Describir plato / Ingresar manualmente).
     const avg = expectedMealAverages();
-    MEAL_SLOTS.forEach(slot=>{
-      const dish = avg[slot.id];
-      if(dish && !nut.planLogged?.[slot.id]){
-        pendingKcal += dish.kcal; pendingProtein += dish.p; pendingCarbs += dish.c; pendingFat += dish.f;
-        usedAverageFallback = true;
-        if(!nextPending) nextPending = {slotId:slot.id, slotName:slot.name, dish, isAverage:true};
-      }
-    });
+    const avgTotal = Object.values(avg).reduce((a,d)=>({kcal:a.kcal+d.kcal, p:a.p+d.p, c:a.c+d.c, f:a.f+d.f}), {kcal:0,p:0,c:0,f:0});
+    usedAverageFallback = true;
+    pendingKcal = Math.max(0, Math.round(avgTotal.kcal - consumed));
+    pendingProtein = Math.max(0, round1(avgTotal.p - consumedProtein));
+    const pendingShare = avgTotal.kcal>0 ? pendingKcal/avgTotal.kcal : 0;
+    pendingCarbs = round1(avgTotal.c * pendingShare);
+    pendingFat = round1(avgTotal.f * pendingShare);
+    if(pendingKcal>0){
+      nextPending = {slotId:'resto_del_dia', slotName:'Resto del día', isAverage:true,
+        dish:{name:'Resto del día (estimado)', kcal:pendingKcal, p:pendingProtein, c:pendingCarbs, f:pendingFat}};
+    }
   }
   const projected = Math.round(consumed + pendingKcal);
   const projectedProtein = round1(consumedProtein + pendingProtein);
@@ -4268,8 +4274,13 @@ function renderProgreso(){
     <div style="padding:16px 16px 4px"><b style="font-size:15px">Historial de balance calórico</b></div>
     ${balanceHistoryDates.map(d=>{
       const e = STATE.dailyBalanceLog[d];
-      const bColor = balanceStatusColor(e.balance);
-      const bLabel = e.balance>0?`+${e.balance}`:`${e.balance}`;
+      // Para días ya pasados se muestra el balance REAL (consumido - quemado), no el "esperado" que se
+      // congeló en el último snapshot del día (podía quedar desactualizado si ese día se siguió comiendo
+      // después de la última vez que se abrió la app). Solo el día de hoy sigue mostrando el esperado,
+      // igual que la tarjeta de arriba.
+      const balance = d===todayISO() ? e.balance : Math.round(e.consumed - (e.burn ?? e.tdee));
+      const bColor = balanceStatusColor(balance);
+      const bLabel = balance>0?`+${balance}`:`${balance}`;
       const overs = Object.entries(e.macroOver||{}).filter(([,v])=>v>0).map(([k,v])=>`${k==='kcal'?'+'+v+' kcal':k.toUpperCase()+' +'+v+'g'}`);
       return `<div class="food-item">
         <div><b style="font-size:14px">${fmtDateShort(d)}</b><div class="macro-chip"><span>${e.consumed} kcal</span><span>quemadas ${e.burn ?? e.tdee}</span>${overs.map(o=>`<span style="color:var(--danger);font-weight:700">${o}</span>`).join('')}</div></div>
