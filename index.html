@@ -1757,6 +1757,15 @@ function balanceStatusColor(balanceExpected, isRestDay){
   if(balanceExpected>150 && balanceExpected<=400) return 'oklch(0.68 0.19 55)';
   return 'var(--danger)';
 }
+/* Semáforo simple de 3 colores para "cumplimiento de déficit calórico": verde 100-300 kcal,
+   naranja 301-500 kcal, rojo cualquier otro caso (incluye superávit o déficit fuera de rango). */
+function deficitComplianceColor(balance){
+  if(balance==null) return 'var(--surface-3)';
+  const deficit = -balance;
+  if(deficit>=100 && deficit<=300) return 'var(--success)';
+  if(deficit>300 && deficit<=500) return 'oklch(0.68 0.19 55)';
+  return 'var(--danger)';
+}
 /* Guarda un snapshot del balance ESPERADO de hoy (y los excesos de macros) en el historial */
 function recordDailyBalance(cb, sums){
   const iso = todayISO();
@@ -3110,12 +3119,7 @@ function renderNutricion(){
   const alcoholToday = todayExtras.filter(e=>e.group==='alcohol');
   const extrasPct = sums.kcal>0 ? Math.round((extraSums.kcal/sums.kcal)*100) : 0;
 
-  const weekAdherence = weekDates(iso).map(d=>{
-    const log = STATE.dailyBalanceLog[d];
-    if(!log || log.balance==null) return {d, hit:null};
-    const deficit = -log.balance;
-    return {d, hit: deficit>=100 && deficit<=300};
-  });
+  const weekAdherence = weekDates(iso).map(d=>({d, balance: dayGoalStatus(d).balance}));
 
   const planDayKey = todayPlanKey();
   const plan = getMealPlan();
@@ -3194,9 +3198,14 @@ function renderNutricion(){
       <div class="row" style="justify-content:space-between;margin-top:12px">
         ${weekAdherence.map(w=>{
           const d = parseISO(w.d);
-          const color = w.hit===null?'var(--surface-3)':w.hit?'var(--success)':'var(--danger)';
+          const color = deficitComplianceColor(w.balance);
           return `<div style="text-align:center"><div style="width:26px;height:26px;border-radius:50%;background:${color};margin:0 auto"></div><span class="faint" style="display:block;margin-top:4px">${DOW_NAMES[d.getDay()].slice(0,1).toUpperCase()}</span></div>`;
         }).join('')}
+      </div>
+      <div class="row" style="gap:14px;margin-top:12px;flex-wrap:wrap">
+        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:var(--success);display:inline-block"></i><span class="faint">100-300 kcal</span></span>
+        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:oklch(0.68 0.19 55);display:inline-block"></i><span class="faint">301-500 kcal</span></span>
+        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:var(--danger);display:inline-block"></i><span class="faint">Fuera de rango</span></span>
       </div>
     </div>
   </div>`;
@@ -4821,24 +4830,22 @@ function dayGoalStatus(iso){
   return { calPct, proteinPct, exercisePct, sleepPct, calHit, proteinHit, sleepHit, exerciseHit: exercisePct===1,
     hasData: hasNutrition || !!log || !!sleepEntry, kcalSum: Math.round(kcalSum), pSum, sleepEntry, sleepGoal, balance, hasNutrition };
 }
-function calDayRings(status, size=36){
-  const stroke = 2.5, gap = 1.2;
-  const r0 = size/2 - stroke/2 - 1;
-  const rings = [
-    {pct: status.calPct, color:'var(--ring-cal)'},
-    {pct: status.proteinPct, color:'var(--ring-protein)'},
-    {pct: status.exercisePct, color:'var(--ring-exercise)'},
-    {pct: status.sleepPct, color:'var(--sleep)'},
-  ];
+/* Indicador de día del calendario: un solo anillo de proteína (% de la meta, como antes) con un punto
+   sólido en el centro para el semáforo de déficit calórico. Se separan en dos canales visuales distintos
+   (anillo = progreso hacia una meta, punto sólido = zona/estado) porque el déficit no es un "% completado"
+   — es una franja saludable (100-300 kcal) — y forzarlo a un anillo de progreso sería confuso de leer. */
+function calDayIndicator(status, size=36){
+  const stroke = 3;
+  const r = size/2 - stroke/2 - 1;
+  const c = 2*Math.PI*r;
+  const pct = clamp(status.proteinPct,0,1);
+  const off = c - pct*c;
+  const dotR = Math.max(0, r - stroke - 3);
+  const dotColor = deficitComplianceColor(status.balance);
   let svg = `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">`;
-  rings.forEach((ring,i)=>{
-    const rr = r0 - i*(stroke+gap);
-    if(rr<=0) return;
-    const c = 2*Math.PI*rr;
-    const off = c - clamp(ring.pct,0,1)*c;
-    svg += `<circle cx="${size/2}" cy="${size/2}" r="${rr}" fill="none" stroke="var(--surface-3)" stroke-width="${stroke}"/>`;
-    if(ring.pct>0) svg += `<circle cx="${size/2}" cy="${size/2}" r="${rr}" fill="none" stroke="${ring.color}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 ${size/2} ${size/2})"/>`;
-  });
+  svg += `<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--surface-3)" stroke-width="${stroke}"/>`;
+  if(pct>0) svg += `<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--ring-protein)" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 ${size/2} ${size/2})"/>`;
+  svg += `<circle cx="${size/2}" cy="${size/2}" r="${dotR}" fill="${dotColor}"/>`;
   svg += `</svg>`;
   return svg;
 }
@@ -4878,7 +4885,7 @@ function renderCalendarSheet(){
     const d = parseISO(iso).getDate();
     const status = isFuture ? null : dayGoalStatus(iso);
     cells.push(`<div class="cal-cell ${iso===todayIso?'today':''}" ${!isFuture?`role="button" tabindex="0" data-action="peek-history-day" data-date="${iso}"`:''}>
-      ${status ? calDayRings(status,36) : `<div style="width:36px;height:36px;border-radius:50%;background:var(--surface-2)"></div>`}
+      ${status ? calDayIndicator(status,36) : `<div style="width:36px;height:36px;border-radius:50%;background:var(--surface-2)"></div>`}
       <span>${d}</span>
     </div>`);
   });
@@ -4891,10 +4898,10 @@ function renderCalendarSheet(){
     <div class="cal-grid cal-dow">${['L','M','X','J','V','S','D'].map(x=>`<span>${x}</span>`).join('')}</div>
     <div class="cal-grid">${cells.join('')}</div>
     <div class="row" style="gap:16px;margin-top:16px;justify-content:center;flex-wrap:wrap">
-      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--ring-cal);display:inline-block"></i><span class="faint">Calorías</span></span>
-      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--ring-protein);display:inline-block"></i><span class="faint">Proteína</span></span>
-      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--ring-exercise);display:inline-block"></i><span class="faint">Ejercicio</span></span>
-      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--sleep);display:inline-block"></i><span class="faint">Sueño</span></span>
+      <span class="row" style="gap:6px"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="none" stroke="var(--surface-3)" stroke-width="2"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="var(--ring-protein)" stroke-width="2" stroke-dasharray="28 41" stroke-linecap="round" transform="rotate(-90 8 8)"/></svg><span class="faint">Anillo: proteína</span></span>
+      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--success);display:inline-block"></i><span class="faint">Punto: déficit 100-300</span></span>
+      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:oklch(0.68 0.19 55);display:inline-block"></i><span class="faint">301-500</span></span>
+      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--danger);display:inline-block"></i><span class="faint">Fuera de rango</span></span>
     </div>
   `);
 }
@@ -4902,26 +4909,48 @@ function openHistoryDayPeek(date){
   const hist = historyForDate(date);
   const status = dayGoalStatus(date);
   const isToday = date===todayISO();
+  const isFuture = date>todayISO();
+  const rawLog = STATE.workoutLogs.find(w=>w.date===date);
   let body;
   if(hist){
     const modeLabel = hist.mode==='home' ? 'En casa' : hist.mode==='short' ? 'Corto' : 'Completo';
+    const cardioBit = rawLog?.cardio?.minutes ? ` · Cardio: ${rawLog.cardio.minutes} min (${rawLog.cardio.type==='hiit'?'HIIT':'LISS'})` : '';
+    const postCardioBit = rawLog?.postCardio?.minutes ? ` · Cardio post-entreno: ${rawLog.postCardio.minutes} min` : '';
     body = `${muscleMap(hist.type==='cardio'?[]: [...new Set(exercisesForDay(hist.day).flatMap(e=>e.muscles))])}
-    <div class="row between" style="margin:8px 0;flex-wrap:wrap;gap:6px"><span class="tag ${hist.type==='cardio'?'sleep':'strength'}">Día ${hist.day} · ${hist.label}</span><span class="tag ${hist.completed?'':'gamify'}">${hist.completed?'Completado':'En progreso'} · ${modeLabel}</span></div>`;
-  } else if(date>todayISO()){
+    <div class="row between" style="margin:8px 0;flex-wrap:wrap;gap:6px"><span class="tag ${hist.type==='cardio'?'sleep':'strength'}">Día ${hist.day} · ${hist.label}</span><span class="tag ${hist.completed?'':'gamify'}">${hist.completed?'Completado':'En progreso'} · ${modeLabel}</span></div>
+    ${(cardioBit||postCardioBit) ? `<p class="faint">${(cardioBit+postCardioBit).replace(/^ · /,'')}</p>` : ''}`;
+  } else if(isFuture){
     body = `<p class="muted">Aún no llega este día.</p>`;
   } else {
     body = `<p class="muted">No entrenaste este día.</p>`;
   }
-  const sleepText = status.sleepEntry ? `${round1(status.sleepEntry.totalMin/60)}h <span class="faint">/ ${status.sleepGoal}h meta</span>` : 'Sin registro';
-  const proteinText = status.hasNutrition ? `${status.pSum}g <span class="faint">/ ${currentMacros(date).p}g meta</span>` : 'Sin registro';
+  // Sueño: horas totales + fases si hay registro, para ver de un vistazo si falta o está incompleto
+  let sleepDetailHtml = '<span class="faint">Sin registro</span>';
+  if(status.sleepEntry){
+    const s = status.sleepEntry;
+    const pct = (min)=> s.totalMin ? Math.round((min||0)/s.totalMin*100) : 0;
+    sleepDetailHtml = `${round1(s.totalMin/60)}h <span class="faint">/ ${status.sleepGoal}h meta</span>
+      <div class="faint" style="margin-top:2px">${pct(s.deep)}% profundo · ${pct(s.rem)}% REM · ${pct(s.light)}% ligero</div>`;
+  }
+  // Alimentación: listado real de comidas y antojos del día, no solo el total — así se ve qué falta
+  const mealsForDay = STATE.nutrition[date]?.meals || [];
+  const extrasForDay = extrasForDate(date);
+  const foodRows = [
+    ...mealsForDay.map(m=>`<div class="food-item"><div><b style="font-size:13.5px">${m.name}</b><div class="faint">${m.kcal} kcal · P${m.p} C${m.c} G${m.f}</div></div></div>`),
+    ...extrasForDay.map(e=>`<div class="food-item"><div><b style="font-size:13.5px">${e.name}</b><div class="faint">${e.kcal} kcal${e.time?' · '+e.time:''} · antojo</div></div></div>`),
+  ];
+  const burnInfo = isFuture ? null : burnBreakdownForDate(date);
   const balanceText = status.balance==null ? 'Sin datos suficientes'
-    : `<b style="color:${balanceStatusColor(status.balance)}">${status.balance>0?'+':''}${status.balance} kcal</b> ${status.balance>0?'(superávit)':'(déficit)'}`;
-  const goalsHtml = date>todayISO() ? '' : `<div class="divider" style="margin:14px 0"></div>
-  <div style="display:flex;flex-direction:column;gap:10px">
-    <div class="row between"><span class="faint">Sueño</span><span>${sleepText}</span></div>
-    <div class="row between"><span class="faint">Proteína consumida</span><span>${proteinText}</span></div>
-    <div class="row between"><span class="faint">Balance calórico</span><span>${balanceText}</span></div>
-  </div>`;
+    : `<b style="color:${deficitComplianceColor(status.balance)}">${status.balance>0?'+':''}${status.balance} kcal</b> ${status.balance>0?'(superávit)':'(déficit)'}`;
+  const goalsHtml = isFuture ? '' : `<div class="divider" style="margin:14px 0"></div>
+  <b style="font-size:13.5px">Sueño</b>
+  <p style="margin-top:4px">${sleepDetailHtml}</p>
+  <div class="divider" style="margin:14px 0"></div>
+  <b style="font-size:13.5px">Alimentación</b>
+  ${foodRows.length ? `<div style="margin-top:6px">${foodRows.join('')}</div>` : `<p class="faint" style="margin-top:4px">Sin registros</p>`}
+  <div class="row between" style="margin-top:${foodRows.length?10:6}px"><span class="faint">Consumido</span><b style="font-size:13px">${status.kcalSum} kcal · P${status.pSum}g</b></div>
+  ${burnInfo?`<div class="row between" style="margin-top:4px"><span class="faint">Quemado (estimado)</span><b style="font-size:13px">${burnInfo.fullDay} kcal</b></div>`:''}
+  <div class="row between" style="margin-top:4px"><span class="faint">Balance calórico</span><span>${balanceText}</span></div>`;
   const editHtml = (date<todayISO()) ? `<div class="divider" style="margin:14px 0"></div>
   <p class="faint" style="margin-bottom:8px">¿No registraste algo este día? Puedes agregarlo ahora:</p>
   <div class="row" style="gap:8px;flex-wrap:wrap">
