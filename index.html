@@ -1165,7 +1165,7 @@ function expectedMealAverages(){
 /* ---- Supplements (macros from real product labels, added to daily totals when checked) ---- */
 const SUPPLEMENTS = [
   {id:'creatina', name:'Creatina', dose:'5 g', icon:'zap', kcal:0, p:0, c:0, f:0},
-  {id:'colageno', name:'Colágeno', dose:'10 g', icon:'pill', kcal:40, p:10, c:0, f:0},
+  {id:'colageno', name:'Colágeno', dose:'10 g', icon:'pill', kcal:40, p:0, c:0, f:0}, // el colágeno es una proteína incompleta (le falta triptófano) — no cuenta para la meta de proteína
 ];
 
 /* ---- Gamification: levels & badges ---- */
@@ -2990,11 +2990,12 @@ function openExerciseSheet(exId){
       <span class="tag">${ex.reps} reps</span>
       ${best?`<span class="tag gamify">${icon('trophy',13,{valign:'-2px'})} PR ${best.weight}kg</span>`:''}
     </div>
-    <div class="holiday-banner" style="background:color-mix(in oklch, var(--strength) 14%, var(--surface));border-color:color-mix(in oklch, var(--strength) 30%, transparent)">
+    ${allSetsDone
+      ? `<button class="btn primary block" data-action="close-sheet-action">${icon('check-circle',15,{valign:'-2px'})} Ejercicio completado — volver a la rutina</button>`
+      : `<div class="holiday-banner" style="background:color-mix(in oklch, var(--strength) 14%, var(--surface));border-color:color-mix(in oklch, var(--strength) 30%, transparent)">
       ${icon('dumbbell',15,{valign:'-3px'})} No cuentes reps fijas: empuja hasta el <b>fallo técnico</b> (1-2 reps en reserva). Si haces más de ${ex.reps.split('-')[1]||ex.reps}, sube el peso la próxima vez.
-    </div>
+    </div>`}
     ${setsHtml}
-    ${allSetsDone?`<button class="btn primary block" style="margin-top:10px" data-action="close-sheet-action">${icon('check-circle',15,{valign:'-2px'})} Ejercicio completado — volver a la rutina</button>`:''}
     ${history.length>1?`<div class="divider"></div><b style="font-size:13.5px">Progreso de peso</b>${sparkline(history,{unit:'kg',color:'var(--strength)'})}`:''}
     ${altsHtml}
     <button class="btn ghost block" style="margin-top:14px" data-action="view-ex-history" data-exid="${base.id}">Ver historial completo</button>
