@@ -887,28 +887,53 @@ const FOODS = [
 ];
 function findFood(id){ return FOODS.find(f=>f.id===id) || window.__fdcCache[id]; }
 
+/* ---- Traducción es<->en (MyMemory, gratis y sin llave) para que la búsqueda y sus resultados queden en español,
+   ya que USDA FoodData Central solo tiene sus datos en inglés. Con caché para no repetir la misma traducción. ---- */
+window.__translateCache = window.__translateCache || {};
+async function translateText(text, from, to){
+  const cacheKey = `${from}|${to}|${text}`;
+  if(window.__translateCache[cacheKey]) return window.__translateCache[cacheKey];
+  try{
+    const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`);
+    if(!res.ok) return text;
+    const data = await res.json();
+    const translated = data?.responseData?.translatedText;
+    if(!translated) return text;
+    window.__translateCache[cacheKey] = translated;
+    return translated;
+  }catch(e){
+    return text; // sin traducción disponible (offline, límite alcanzado, etc.) — se sigue mostrando el original antes que romper la búsqueda
+  }
+}
+
 /* ---- Búsqueda en USDA FoodData Central: complementa el banco local de FOODS con miles de alimentos genéricos ---- */
 const USDA_FDC_API_KEY = 'DEMO_KEY'; // límite de 30 solicitudes/hora — si se agota, genera una llave propia gratis en https://fdc.nal.usda.gov/api-key-signup.html
 window.__fdcCache = window.__fdcCache || {};
 async function searchFDC(query){
   try{
-    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${USDA_FDC_API_KEY}&query=${encodeURIComponent(query)}&pageSize=8&dataType=Foundation,SR%20Legacy`;
+    const queryEn = await translateText(query, 'es', 'en');
+    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${USDA_FDC_API_KEY}&query=${encodeURIComponent(queryEn)}&pageSize=8&dataType=Foundation,SR%20Legacy`;
     const res = await fetch(url);
     if(!res.ok) return [];
     const data = await res.json();
     const getNutrient = (fn, name)=> fn.find(n=>n.nutrientName===name)?.value;
-    return (data.foods||[]).map(food=>{
+    const candidates = (data.foods||[]).map(food=>{
       const kcal = getNutrient(food.foodNutrients, 'Energy');
       const p = getNutrient(food.foodNutrients, 'Protein');
       const c = getNutrient(food.foodNutrients, 'Carbohydrate, by difference');
       const f = getNutrient(food.foodNutrients, 'Total lipid (fat)');
       if(kcal==null || p==null || c==null || f==null) return null; // entrada sin macros completos, no sirve para el registro
+      return {fdcId:food.fdcId, description:food.description, kcal:Math.round(kcal), p:round1(p), c:round1(c), f:round1(f)};
+    }).filter(Boolean);
+    const items = await Promise.all(candidates.map(async(food)=>{
+      const translated = await translateText(food.description, 'en', 'es');
+      const name = translated.charAt(0).toUpperCase()+translated.slice(1).toLowerCase();
       const id = 'fdc_'+food.fdcId;
-      const name = food.description.charAt(0).toUpperCase()+food.description.slice(1).toLowerCase();
-      const item = {id, name, per:100, unitLabel:'100 g', kw:[], kcal:Math.round(kcal), p:round1(p), c:round1(c), f:round1(f), source:'usda'};
+      const item = {id, name, per:100, unitLabel:'100 g', kw:[], kcal:food.kcal, p:food.p, c:food.c, f:food.f, source:'usda'};
       window.__fdcCache[id] = item;
       return item;
-    }).filter(Boolean);
+    }));
+    return items;
   }catch(e){
     console.error('Búsqueda en USDA FoodData Central falló:', e);
     return [];
