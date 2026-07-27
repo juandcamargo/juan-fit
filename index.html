@@ -1129,6 +1129,15 @@ const MEAL_SLOTS = [
   {id:'batido', name:'Batido post-entreno'},
   {id:'cena', name:'Cena'},
 ];
+/* Batido post-entreno: 3 opciones fijas disponibles todos los días (incluidos fines de semana,
+   que no tienen plan de comidas configurado). Macros calculadas a partir del scoop real (1 scoop =
+   36g ≈ 147 kcal · P22 · C7 · G3, consistente con el batido de 1½ scoops ya usado en el plan) y de
+   una porción estándar de fresas (100g crudas ≈ 32 kcal · P0.7 · C7.7 · G0.3) para la variante calórica. */
+const BATIDO_OPTIONS = [
+  {id:'sencillo', name:'Batido sencillo', desc:'1 scoop de proteína (36g de polvo) en agua', kcal:147, p:22, c:7, f:3},
+  {id:'proteico', name:'Batido proteico', desc:'1½ scoops de proteína (54g de polvo) en agua', kcal:220, p:33, c:10, f:5},
+  {id:'calorico', name:'Batido calórico', desc:'1 scoop de proteína (36g) + un puñado de fresas (~100g) en agua', kcal:179, p:22.7, c:14.7, f:3.3},
+];
 const WEEKDAY_KEYS = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
 function todayPlanKey(){ return WEEKDAY_KEYS[parseISO(todayISO()).getDay()]; }
 function getMealPlan(){ return STATE.mealPlan || DEFAULT_MEAL_PLAN; }
@@ -3152,7 +3161,7 @@ function renderNutricion(){
   const todayPlan = plan[planDayKey];
   const planCard = todayPlan ? `<div class="card">
     <div class="row between"><b style="font-size:15px">Tu plan de hoy</b><button class="btn ghost sm" data-action="edit-meal-plan">${icon('pencil',13,{valign:'-2px'})} Editar plan</button></div>
-    ${MEAL_SLOTS.map(slot=>{
+    ${MEAL_SLOTS.filter(slot=>slot.id!=='batido').map(slot=>{
       const dish = todayPlan[slot.id];
       if(!dish) return '';
       const logged = nut.planLogged[slot.id];
@@ -3170,6 +3179,21 @@ function renderNutricion(){
     <p class="faint" style="margin-top:6px">Sin plan configurado para hoy (fin de semana) — registra libremente abajo.</p>
   </div>`;
 
+  // Batido post-entreno: 3 opciones fijas, disponibles todos los días (incluidos fines de semana sin plan)
+  const batidoLogged = nut.planLogged?.batido;
+  const batidoLoggedOption = batidoLogged && BATIDO_OPTIONS.find(b=>b.id===batidoLogged);
+  const batidoCard = `<div class="card">
+    <div class="row between"><b style="font-size:15px">Batido post-entreno</b>${batidoLogged?`<span class="tag strength">${batidoLoggedOption?batidoLoggedOption.name:'Comiste otra cosa'}</span>`:''}</div>
+    ${batidoLogged ? '' : `
+    <p class="faint" style="margin-top:6px">Elige una opción:</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+      ${BATIDO_OPTIONS.map(b=>`
+        <div class="swap-option" role="button" tabindex="0" data-action="log-batido-option" data-batido="${b.id}">
+          <div><b style="font-size:13.5px">${b.name}</b><div class="faint">${b.desc} · ${b.kcal} kcal · P${b.p} C${b.c} G${b.f}</div></div>
+        </div>`).join('')}
+    </div>`}
+  </div>`;
+
   $('#view-root').innerHTML = `<div class="view">
     <h2 class="section-title">Nutrición</h2>
     <div class="card">
@@ -3177,6 +3201,7 @@ function renderNutricion(){
       <div class="grid2" style="justify-items:center">${macroRow}</div>
     </div>
     ${planCard}
+    ${batidoCard}
 
     <div class="card">
       <b style="font-size:15px">Registrar comida</b>
@@ -3505,6 +3530,17 @@ function logPlanMeal(slotId){
   nut.planLogged[slotId] = 'plan';
   saveState(); touchStreak(todayISO()); addXP(5); checkBadges();
   toast('Comida del plan registrada', {icon:'utensils'});
+  render();
+}
+function logBatidoOption(variantId){
+  const variant = BATIDO_OPTIONS.find(b=>b.id===variantId);
+  if(!variant) return;
+  const iso = todayISO();
+  const nut = ensureNutritionDay(iso);
+  nut.meals.push({id:uid(), name:variant.name, kcal:variant.kcal, p:variant.p, c:variant.c, f:variant.f, isPlan:true});
+  nut.planLogged.batido = variantId;
+  saveState(); touchStreak(iso); addXP(5); checkBadges();
+  toast('Batido registrado', {icon:'utensils'});
   render();
 }
 function openPlanAlternative(slotId){
@@ -5175,6 +5211,7 @@ document.addEventListener('click', (e)=>{
     case 'log-workout-for-day': openLogWorkoutForDay(el.dataset.date); break;
     case 'confirm-workout-for-day': confirmWorkoutForDay(el.dataset.date); break;
     case 'log-plan-meal': logPlanMeal(el.dataset.slot); break;
+    case 'log-batido-option': logBatidoOption(el.dataset.batido); break;
     case 'open-plan-alt': openPlanAlternative(el.dataset.slot); break;
     case 'edit-meal-plan': editMealPlanScreen(); break;
     case 'edit-meal-plan-day': editMealPlanDay(el.dataset.day); break;
