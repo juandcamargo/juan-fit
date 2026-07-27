@@ -1494,16 +1494,19 @@ function estimateProgrammedTrainingKcal(sched, weightKg){
       día completo (sin prorratear) + el entrenamiento del día, sea ya completado (real) o, si aún no se ha
       hecho, la estimación de la sesión PROGRAMADA (no cero) — salvo que hoy sea día de descanso.
       El entrenamiento se suma UNA sola vez (no se duplica con el TDEE promedio semanal). */
-function todaysBurnBreakdown(){
+function burnBreakdownForDate(iso){
+  const isToday = iso===todayISO();
   const bodyLog = latestBodyLog();
   const bmr = bodyLog?.bmr || 1600;
   const weightKg = bodyLog?.weightKg || 75;
   const prof = STATE.profile;
   const neatFullDay = Math.round(bmr * baseActivityFactor(prof.dailySteps, prof.jobType));
-  const now = new Date();
-  const dayFraction = clamp((now.getHours() + now.getMinutes()/60) / 24, 0, 1);
-  const neatSoFar = Math.round(neatFullDay * dayFraction);
-  const iso = todayISO();
+  let dayFraction = 1, neatSoFar = neatFullDay;
+  if(isToday){
+    const now = new Date();
+    dayFraction = clamp((now.getHours() + now.getMinutes()/60) / 24, 0, 1);
+    neatSoFar = Math.round(neatFullDay * dayFraction);
+  }
   const sched = scheduleForDate(iso);
   const log = STATE.workoutLogs.find(w=>w.date===iso);
   const extra = Math.round(extraSessionsKcalForDate(iso)); // sesiones extra ya ocurridas: siempre completas, en ambos cálculos
@@ -1535,15 +1538,18 @@ function todaysBurnBreakdown(){
     trainingKcalDone = kcal;
     trainingKcalPlan = kcal;
     source = 'completado';
-  } else {
+  } else if(isToday){
     trainingKcalPlan = estimateProgrammedTrainingKcal(sched, weightKg); // aún no se ha hecho: se usa la estimación programada, no cero
     source = 'programado';
+  } else {
+    source = 'sin_registro'; // día pasado sin entrenamiento completado registrado: no se asume ninguno
   }
 
   const soFar = Math.round(neatSoFar + trainingKcalDone + extra);
   const fullDay = Math.round(neatFullDay + trainingKcalPlan + extra);
   return {neatFullDay, neatSoFar, trainingKcalDone, trainingKcalPlan, extra, soFar, fullDay, source, dayType: sched.type, dayFraction, cardioKcal, cardioMinutes};
 }
+function todaysBurnBreakdown(){ return burnBreakdownForDate(todayISO()); }
 /* TDEE = BMR x un único factor de actividad (cotidiana + rutina habitual de entreno). Es un promedio
    de mantenimiento a mediano plazo (se usa para fijar la meta calórica y los macros), NO la quema real de hoy.
    El ejercicio de una sesión puntual (estimateExerciseBurnToday / todaysBurnBreakdown) es independiente de este número. */
@@ -4274,16 +4280,36 @@ function renderProgreso(){
     <div style="padding:16px 16px 4px"><b style="font-size:15px">Historial de balance calórico</b></div>
     ${balanceHistoryDates.map(d=>{
       const e = STATE.dailyBalanceLog[d];
-      // Para días ya pasados se muestra el balance REAL (consumido - quemado), no el "esperado" que se
-      // congeló en el último snapshot del día (podía quedar desactualizado si ese día se siguió comiendo
-      // después de la última vez que se abrió la app). Solo el día de hoy sigue mostrando el esperado,
+      const isToday = d===todayISO();
+      // Para días ya pasados, todo se recalcula EN VIVO (comidas/extras/entrenamiento tal como están
+      // ahora mismo), no desde el snapshot congelado — así una comida agregada después (registro
+      // retroactivo) sí queda reflejada. Solo hoy sigue mostrando el balance esperado/proyectado,
       // igual que la tarjeta de arriba.
-      const balance = d===todayISO() ? e.balance : Math.round(e.consumed - (e.burn ?? e.tdee));
+      let consumed, burn, balance, macroOver;
+      if(isToday){
+        consumed = e.consumed; burn = e.burn ?? e.tdee; balance = e.balance; macroOver = e.macroOver||{};
+      } else {
+        const nut = STATE.nutrition[d];
+        const extras = extrasForDate(d);
+        const mealsSum = (nut?.meals||[]).reduce((a,m)=>({kcal:a.kcal+m.kcal,p:a.p+m.p,c:a.c+(m.c||0),f:a.f+(m.f||0)}),{kcal:0,p:0,c:0,f:0});
+        const extrasSum = extras.reduce((a,ex)=>({kcal:a.kcal+(ex.kcal||0),p:a.p+(ex.protein||0),c:a.c+(ex.carbs||0),f:a.f+(ex.fat||0)}),{kcal:0,p:0,c:0,f:0});
+        const sums = {kcal:mealsSum.kcal+extrasSum.kcal, p:mealsSum.p+extrasSum.p, c:mealsSum.c+extrasSum.c, f:mealsSum.f+extrasSum.f};
+        const targets = currentMacros(d);
+        consumed = Math.round(sums.kcal);
+        burn = burnBreakdownForDate(d).fullDay;
+        balance = Math.round(consumed - burn);
+        macroOver = {
+          kcal: sums.kcal>targets.kcal ? Math.round(sums.kcal-targets.kcal) : 0,
+          p: sums.p>targets.p ? round1(sums.p-targets.p) : 0,
+          c: sums.c>targets.c ? round1(sums.c-targets.c) : 0,
+          f: sums.f>targets.f ? round1(sums.f-targets.f) : 0,
+        };
+      }
       const bColor = balanceStatusColor(balance);
       const bLabel = balance>0?`+${balance}`:`${balance}`;
-      const overs = Object.entries(e.macroOver||{}).filter(([,v])=>v>0).map(([k,v])=>`${k==='kcal'?'+'+v+' kcal':k.toUpperCase()+' +'+v+'g'}`);
+      const overs = Object.entries(macroOver).filter(([,v])=>v>0).map(([k,v])=>`${k==='kcal'?'+'+v+' kcal':k.toUpperCase()+' +'+v+'g'}`);
       return `<div class="food-item">
-        <div><b style="font-size:14px">${fmtDateShort(d)}</b><div class="macro-chip"><span>${e.consumed} kcal</span><span>quemadas ${e.burn ?? e.tdee}</span>${overs.map(o=>`<span style="color:var(--danger);font-weight:700">${o}</span>`).join('')}</div></div>
+        <div><b style="font-size:14px">${fmtDateShort(d)}</b><div class="macro-chip"><span>${consumed} kcal</span><span>quemadas ${burn}</span>${overs.map(o=>`<span style="color:var(--danger);font-weight:700">${o}</span>`).join('')}</div></div>
         <b style="color:${bColor};font-size:15px">${bLabel}</b>
       </div>`;
     }).join('')}
@@ -4784,9 +4810,14 @@ function dayGoalStatus(iso){
   const sleepGoal = STATE.profile.sleepGoalHours || 7;
   const sleepPct = sleepEntry ? clamp((sleepEntry.totalMin/60)/sleepGoal, 0, 1.15) : 0;
   const sleepHit = sleepEntry ? (sleepEntry.totalMin/60) >= sleepGoal*0.9 : false;
+  // Para hoy se prefiere el balance ESPERADO ya calculado (consistente con la tarjeta de Hoy); para
+  // cualquier otro día se recalcula en vivo con lo que hay registrado ahora mismo (comidas, extras y
+  // entrenamiento), para que un registro retroactivo posterior sí quede reflejado aquí.
+  const isToday = iso===todayISO();
   const balanceLog = STATE.dailyBalanceLog[iso];
-  const tdee = balanceLog?.tdee ?? (latestBodyLog()?.tdee || null);
-  const balance = balanceLog ? balanceLog.balance : (hasNutrition && tdee!=null ? Math.round(kcalSum - tdee) : null);
+  const balance = isToday
+    ? (balanceLog ? balanceLog.balance : null)
+    : (hasNutrition ? Math.round(kcalSum - burnBreakdownForDate(iso).fullDay) : null);
   return { calPct, proteinPct, exercisePct, sleepPct, calHit, proteinHit, sleepHit, exerciseHit: exercisePct===1,
     hasData: hasNutrition || !!log || !!sleepEntry, kcalSum: Math.round(kcalSum), pSum, sleepEntry, sleepGoal, balance, hasNutrition };
 }
