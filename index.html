@@ -2500,6 +2500,14 @@ function renderHoy(){
       : (bt.cardioKcal>0
         ? `${bt.source==='completado'?'Entrenamiento completado':'Entrenamiento programado'} (${trainingLabel}): ~${strengthOnlyKcal} kcal + cardio post-entreno ~${bt.cardioKcal} kcal (${bt.cardioMinutes} min) = ~${bt.trainingKcalPlan} kcal en total`
         : `${bt.source==='completado'?'Entrenamiento completado':'Entrenamiento programado'} (${trainingLabel}): ~${bt.trainingKcalPlan} kcal`);
+  const todaysExtraSessions = extraSessionsForDate(iso);
+  const extraSessionsHtml = todaysExtraSessions.map(s=>{
+    const typeName = EXTRA_SESSION_TYPES.find(t=>t.id===s.type)?.name || s.type;
+    return `<div class="row between" style="margin-top:8px;padding:10px 12px;background:var(--surface-2);border-radius:12px">
+      <span class="faint">${icon('zap',13,{valign:'-2px'})} Sesión extra: ${typeName} — ${s.minutes} min</span>
+      <b style="font-size:13px">~${s.kcal} kcal</b>
+    </div>`;
+  }).join('');
   const balanceCard = `<div class="card">
     <div class="row between"><b style="font-size:15px">Balance calórico de hoy</b><span class="faint">estimado</span></div>
     <p class="faint" style="margin-top:10px;font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em">Hasta ahora (parcial)</p>
@@ -2518,6 +2526,7 @@ function renderHoy(){
     <div class="row between" style="margin-top:12px;padding:10px 12px;background:var(--surface-2);border-radius:12px">
       <span class="faint">${icon('flame',13,{valign:'-2px'})} ${trainingBadge}</span>
     </div>
+    ${extraSessionsHtml}
     <p class="faint" style="margin-top:10px">Meta alimenticia: ${cb.meta} kcal.</p>
     ${statusLines.map(l=>`<p style="font-size:13px;margin-top:6px;color:var(--ink-muted)">${l}</p>`).join('')}
     ${alert.recommendation?`<div class="divider" style="margin:12px 0"></div><p style="font-size:13px;color:var(--ink-muted)">${alert.recommendation}</p>`:''}
