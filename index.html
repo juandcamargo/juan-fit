@@ -1511,6 +1511,8 @@ function todaysBurnBreakdown(){
   let trainingKcalDone = 0; // entrenamiento YA realizado hoy — cuenta para "hasta ahora"
   let trainingKcalPlan = 0; // entrenamiento a usar en la proyección del día (real si ya se hizo, programado si no)
   let source = 'descanso'; // 'descanso' | 'programado' | 'completado'
+  let cardioKcal = 0; // kcal de la porción de cardio ya realizada hoy (sesión del día 3, o cardio post-entreno en día de fuerza)
+  let cardioMinutes = 0;
 
   if(sched.type==='rest-suggested'){
     source = 'descanso'; // día de descanso: 0 kcal de entrenamiento en ambos cálculos
@@ -1520,8 +1522,15 @@ function todaysBurnBreakdown(){
       const rpe = log.cardio?.rpe || 6;
       const rpeFactor = clamp(0.7 + rpe*0.05, 0.7, 1.3); // el esfuerzo percibido ajusta la estimación ±30%
       kcal = Math.round(exerciseKcalForLog(log, weightKg) * rpeFactor);
+      cardioKcal = kcal; // día 3 es 100% cardio
+      cardioMinutes = log.cardio?.minutes || 0;
     } else {
       kcal = Math.round(exerciseKcalForLog(log, weightKg));
+      if(log.postCardio?.minutes){
+        const intensity = log.postCardio.intensity || 'moderado';
+        cardioKcal = Math.round(activeKcal(CARDIO_MET[intensity]||CARDIO_MET.moderado, weightKg, log.postCardio.minutes));
+        cardioMinutes = log.postCardio.minutes;
+      }
     }
     trainingKcalDone = kcal;
     trainingKcalPlan = kcal;
@@ -1533,7 +1542,7 @@ function todaysBurnBreakdown(){
 
   const soFar = Math.round(neatSoFar + trainingKcalDone + extra);
   const fullDay = Math.round(neatFullDay + trainingKcalPlan + extra);
-  return {neatFullDay, neatSoFar, trainingKcalDone, trainingKcalPlan, extra, soFar, fullDay, source, dayType: sched.type, dayFraction};
+  return {neatFullDay, neatSoFar, trainingKcalDone, trainingKcalPlan, extra, soFar, fullDay, source, dayType: sched.type, dayFraction, cardioKcal, cardioMinutes};
 }
 /* TDEE = BMR x un único factor de actividad (cotidiana + rutina habitual de entreno). Es un promedio
    de mantenimiento a mediano plazo (se usa para fijar la meta calórica y los macros), NO la quema real de hoy.
@@ -2483,9 +2492,12 @@ function renderHoy(){
   const actualBalance = Math.round(cb.consumed - bt.soFar);
   const actualLabel = actualBalance>0 ? `+${actualBalance}` : `${actualBalance}`;
   const actualWord = actualBalance>0 ? 'superávit actual' : 'déficit actual';
+  const cardioSuffix = bt.cardioKcal>0 ? ` · Cardio: ~${bt.cardioKcal} kcal${bt.cardioMinutes?` (${bt.cardioMinutes} min)`:''}` : '';
   const trainingBadge = bt.source==='descanso'
     ? `Descanso hoy: 0 kcal de entrenamiento`
-    : `${bt.source==='completado'?'Entrenamiento completado':'Entrenamiento programado'} (${trainingLabel}): ~${bt.trainingKcalPlan} kcal`;
+    : (bt.dayType==='cardio' && bt.source==='completado')
+      ? `Sesión de cardio completada: ~${bt.trainingKcalPlan} kcal${bt.cardioMinutes?` (${bt.cardioMinutes} min)`:''}`
+      : `${bt.source==='completado'?'Entrenamiento completado':'Entrenamiento programado'} (${trainingLabel}): ~${bt.trainingKcalPlan} kcal${cardioSuffix}`;
   const balanceCard = `<div class="card">
     <div class="row between"><b style="font-size:15px">Balance calórico de hoy</b><span class="faint">estimado</span></div>
     <p class="faint" style="margin-top:10px;font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em">Hasta ahora (parcial)</p>
