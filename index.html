@@ -3180,18 +3180,22 @@ function renderNutricion(){
   </div>`;
 
   // Batido post-entreno: 3 opciones fijas, disponibles todos los días (incluidos fines de semana sin plan)
-  const batidoLogged = nut.planLogged?.batido;
-  const batidoLoggedOption = batidoLogged && BATIDO_OPTIONS.find(b=>b.id===batidoLogged);
+  const batidosToday = nut.meals.filter(m=>m.slotId==='batido');
   const batidoCard = `<div class="card">
-    <div class="row between"><b style="font-size:15px">Batido post-entreno</b>${batidoLogged?`<span class="tag strength">${batidoLoggedOption?batidoLoggedOption.name:'Comiste otra cosa'}</span>`:''}</div>
-    ${batidoLogged ? '' : `
-    <p class="faint" style="margin-top:6px">Elige una opción:</p>
+    <b style="font-size:15px">Batido post-entreno</b>
+    <p class="faint" style="margin-top:6px">Elige una opción — puedes registrar más de uno si tomaste varios:</p>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
       ${BATIDO_OPTIONS.map(b=>`
         <div class="swap-option" role="button" tabindex="0" data-action="log-batido-option" data-batido="${b.id}">
           <div><b style="font-size:13.5px">${b.name}</b><div class="faint">${b.desc} · ${b.kcal} kcal · P${b.p} C${b.c} G${b.f}</div></div>
         </div>`).join('')}
-    </div>`}
+    </div>
+    ${batidosToday.length ? `<div class="divider" style="margin:12px 0"></div>
+    <p class="faint" style="margin-bottom:6px">Registrados hoy:</p>
+    ${batidosToday.map(m=>`<div class="food-item">
+      <div><b style="font-size:13.5px">${m.name}</b><div class="faint">${m.kcal} kcal · P${m.p} C${m.c} G${m.f}</div></div>
+      <button class="icon-btn" data-action="delete-meal" data-mealid="${m.id}" style="width:30px;height:30px">${icon('trash',14)}</button>
+    </div>`).join('')}` : ''}
   </div>`;
 
   $('#view-root').innerHTML = `<div class="view">
@@ -3537,7 +3541,7 @@ function logBatidoOption(variantId){
   if(!variant) return;
   const iso = todayISO();
   const nut = ensureNutritionDay(iso);
-  nut.meals.push({id:uid(), name:variant.name, kcal:variant.kcal, p:variant.p, c:variant.c, f:variant.f, isPlan:true});
+  nut.meals.push({id:uid(), name:variant.name, kcal:variant.kcal, p:variant.p, c:variant.c, f:variant.f, isPlan:true, slotId:'batido'});
   nut.planLogged.batido = variantId;
   saveState(); touchStreak(iso); addXP(5); checkBadges();
   toast('Batido registrado', {icon:'utensils'});
@@ -4254,6 +4258,9 @@ function deleteMeal(mealId, date=todayISO()){
   if(removed && removed.isSupplement){
     const suppId = mealId.replace(/^supp_/,'');
     if(nut.supplements[suppId]) nut.supplements[suppId] = false;
+  }
+  if(removed && removed.slotId==='batido' && !nut.meals.some(m=>m.slotId==='batido')){
+    delete nut.planLogged.batido; // ya no queda ningún batido registrado ese día
   }
   saveState(); render();
   toast('Comida eliminada', {icon:'trash'});
