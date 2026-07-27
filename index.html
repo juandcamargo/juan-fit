@@ -760,6 +760,7 @@ const ICON_PATHS = {
   droplet: `<path d="M12 3c3 4 6 7.8 6 11.5a6 6 0 0 1-12 0C6 10.8 9 7 12 3z"/>`,
   phone: `<path d="M6 3h4l1.5 4L9.5 9c1 2.5 3 4.5 5.5 5.5l2-2 4 1.5v4a2 2 0 0 1-2 2C10.5 20 4 13.5 4 5a2 2 0 0 1 2-2z"/>`,
   info: `<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 8h.01"/>`,
+  trash: `<path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13h10l1-13"/>`,
 };
 function icon(name, size=16, opts={}){
   const sw = opts.strokeWidth || 2;
@@ -4185,8 +4186,8 @@ function saveExtrasGoals(){
   toast('Metas guardadas', {icon:'check-circle'});
   render();
 }
-function deleteMeal(mealId){
-  const nut = ensureNutritionDay(todayISO());
+function deleteMeal(mealId, date=todayISO()){
+  const nut = ensureNutritionDay(date);
   const removed = nut.meals.find(m=>m.id===mealId);
   nut.meals = nut.meals.filter(m=>m.id!==mealId);
   if(removed && removed.isSupplement){
@@ -4194,6 +4195,25 @@ function deleteMeal(mealId){
     if(nut.supplements[suppId]) nut.supplements[suppId] = false;
   }
   saveState(); render();
+  toast('Comida eliminada', {icon:'trash'});
+}
+function deleteSleepLog(date){
+  openConfirmSheet(`¿Eliminar el registro de sueño de ${fmtDateShort(date)}?`, ()=>{
+    delete STATE.sleep[date];
+    saveState();
+    closeSheet();
+    render();
+    toast('Registro de sueño eliminado', {icon:'trash'});
+  });
+}
+function deleteWorkoutLog(date){
+  openConfirmSheet(`¿Eliminar el entrenamiento de ${fmtDateShort(date)}?`, ()=>{
+    STATE.workoutLogs = STATE.workoutLogs.filter(w=>w.date!==date);
+    saveState();
+    closeSheet();
+    render();
+    toast('Entrenamiento eliminado', {icon:'trash'});
+  });
 }
 function toggleSupp(date, suppId){
   const nut = ensureNutritionDay(date);
@@ -4476,6 +4496,7 @@ function openSleepLog(date){
     ${pairField('Profundo', 'sDeep', s.deep)}
     ${pairField('Vigilia (tiempo despierto)', 'sAwake', s.awake)}
     <button class="btn sleep block" style="margin-top:16px" data-action="confirm-sleep" data-date="${date}">Guardar sueño</button>
+    ${STATE.sleep[date] ? `<button class="btn ghost block" style="margin-top:8px;color:var(--danger)" data-action="delete-sleep-log" data-date="${date}">Borrar registro</button>` : ''}
   `);
 }
 function confirmSleepLog(date){
@@ -4932,12 +4953,14 @@ function openHistoryDayPeek(date){
     sleepDetailHtml = `${round1(s.totalMin/60)}h <span class="faint">/ ${status.sleepGoal}h meta</span>
       <div class="faint" style="margin-top:2px">${pct(s.deep)}% profundo · ${pct(s.rem)}% REM · ${pct(s.light)}% ligero</div>`;
   }
-  // Alimentación: listado real de comidas y antojos del día, no solo el total — así se ve qué falta
+  // Alimentación: listado real de comidas y antojos del día, no solo el total — así se ve qué falta.
+  // Cada fila se puede borrar directamente (por si algo quedó mal registrado ese día).
+  const trashIconBtn = (action, idAttr, id)=>`<button class="icon-btn" data-action="${action}" ${idAttr}="${id}" data-date="${date}" style="width:30px;height:30px">${icon('trash',14)}</button>`;
   const mealsForDay = STATE.nutrition[date]?.meals || [];
   const extrasForDay = extrasForDate(date);
   const foodRows = [
-    ...mealsForDay.map(m=>`<div class="food-item"><div><b style="font-size:13.5px">${m.name}</b><div class="faint">${m.kcal} kcal · P${m.p} C${m.c} G${m.f}</div></div></div>`),
-    ...extrasForDay.map(e=>`<div class="food-item"><div><b style="font-size:13.5px">${e.name}</b><div class="faint">${e.kcal} kcal${e.time?' · '+e.time:''} · antojo</div></div></div>`),
+    ...mealsForDay.map(m=>`<div class="food-item"><div><b style="font-size:13.5px">${m.name}</b><div class="faint">${m.kcal} kcal · P${m.p} C${m.c} G${m.f}</div></div>${trashIconBtn('delete-meal','data-mealid',m.id)}</div>`),
+    ...extrasForDay.map(e=>`<div class="food-item"><div><b style="font-size:13.5px">${e.name}</b><div class="faint">${e.kcal} kcal${e.time?' · '+e.time:''} · antojo</div></div>${trashIconBtn('delete-extra','data-extraid',e.id)}</div>`),
   ];
   const burnInfo = isFuture ? null : burnBreakdownForDate(date);
   const balanceText = status.balance==null ? 'Sin datos suficientes'
@@ -4952,21 +4975,24 @@ function openHistoryDayPeek(date){
   ${burnInfo?`<div class="row between" style="margin-top:4px"><span class="faint">Quemado (estimado)</span><b style="font-size:13px">${burnInfo.fullDay} kcal</b></div>`:''}
   <div class="row between" style="margin-top:4px"><span class="faint">Balance calórico</span><span>${balanceText}</span></div>`;
   const editHtml = (date<todayISO()) ? `<div class="divider" style="margin:14px 0"></div>
-  <p class="faint" style="margin-bottom:8px">¿No registraste algo este día? Puedes agregarlo ahora:</p>
+  <p class="faint" style="margin-bottom:8px">¿No registraste algo este día, o algo quedó mal? Puedes agregarlo o corregirlo:</p>
   <div class="row" style="gap:8px;flex-wrap:wrap">
     <button class="btn nutrition" style="flex:1" data-action="log-meal-for-day" data-date="${date}">Registrar comida</button>
-    <button class="btn strength" style="flex:1" data-action="log-workout-for-day" data-date="${date}">Registrar entreno</button>
+    <button class="btn strength" style="flex:1" data-action="log-workout-for-day" data-date="${date}">${hist?'Editar':'Registrar'} entreno</button>
   </div>
-  <button class="btn sleep block" style="margin-top:8px" data-action="open-sleep-log" data-date="${date}">${status.sleepEntry?'Editar':'Registrar'} sueño de este día</button>` : '';
+  <button class="btn sleep block" style="margin-top:8px" data-action="open-sleep-log" data-date="${date}">${status.sleepEntry?'Editar':'Registrar'} sueño de este día</button>
+  ${hist?`<button class="btn ghost block" style="margin-top:8px;color:var(--danger)" data-action="delete-workout-log" data-date="${date}">Borrar entrenamiento de este día</button>`:''}` : '';
   openSheet(`<h3>${fmtDateLong(date)}</h3>${body}${goalsHtml}${editHtml}${isToday?`<button class="btn primary block" style="margin-top:14px" data-action="nav" data-tab="hoy">Ir a Hoy</button>`:''}`);
 }
 
 /* ---------- Registro retroactivo de entrenamientos (días anteriores no registrados) ---------- */
 function openLogWorkoutForDay(date){
+  const existing = STATE.workoutLogs.find(w=>w.date===date);
   const sched = scheduleForDate(date);
-  const suggestedDay = sched.day || 1;
+  const suggestedDay = existing?.day || sched.day || 1;
+  const suggestedMode = existing?.mode || (existing?.homeMode ? 'home' : 'full');
   openSheet(`
-    <h3>Registrar entrenamiento de ${fmtDateShort(date)}</h3>
+    <h3>${existing?'Editar':'Registrar'} entrenamiento de ${fmtDateShort(date)}</h3>
     <p class="faint">Marca lo que realmente hiciste — no hace falta registrar serie por serie.</p>
     <label class="field"><span>Día del split</span>
       <select id="wlDay">
@@ -4976,27 +5002,27 @@ function openLogWorkoutForDay(date){
     <div id="wlStrengthFields">
       <label class="field"><span>Modalidad</span>
         <select id="wlMode">
-          <option value="full">Completo</option>
-          <option value="short">Corto</option>
-          <option value="home">Rutina en casa</option>
+          <option value="full" ${suggestedMode==='full'?'selected':''}>Completo</option>
+          <option value="short" ${suggestedMode==='short'?'selected':''}>Corto</option>
+          <option value="home" ${suggestedMode==='home'?'selected':''}>Rutina en casa</option>
         </select>
       </label>
       <p class="faint" style="margin-top:10px">Cardio post-entreno (opcional)</p>
       <div class="grid2">
-        <label class="field"><span>Minutos</span><input type="number" id="wlPostCardioMin" placeholder="0"></label>
-        <label class="field"><span>Esfuerzo (1-10)</span><input type="number" id="wlPostCardioRpe" min="1" max="10" placeholder="5"></label>
+        <label class="field"><span>Minutos</span><input type="number" id="wlPostCardioMin" value="${existing?.postCardio?.minutes||''}" placeholder="0"></label>
+        <label class="field"><span>Esfuerzo (1-10)</span><input type="number" id="wlPostCardioRpe" min="1" max="10" value="${existing?.postCardio?.rpe||''}" placeholder="5"></label>
       </div>
     </div>
     <div id="wlCardioFields" style="display:none">
       <label class="field"><span>Tipo de cardio</span>
         <select id="wlCardioType">
-          <option value="liss">LISS 30-40 min</option>
-          <option value="hiit">HIIT 15-20 min</option>
+          <option value="liss" ${(existing?.cardio?.type||'liss')==='liss'?'selected':''}>LISS 30-40 min</option>
+          <option value="hiit" ${existing?.cardio?.type==='hiit'?'selected':''}>HIIT 15-20 min</option>
         </select>
       </label>
       <div class="grid2">
-        <label class="field"><span>Minutos</span><input type="number" id="wlCardioMin" placeholder="35"></label>
-        <label class="field"><span>Esfuerzo (1-10)</span><input type="number" id="wlCardioRpe" min="1" max="10" placeholder="6"></label>
+        <label class="field"><span>Minutos</span><input type="number" id="wlCardioMin" value="${existing?.cardio?.minutes||''}" placeholder="35"></label>
+        <label class="field"><span>Esfuerzo (1-10)</span><input type="number" id="wlCardioRpe" min="1" max="10" value="${existing?.cardio?.rpe||''}" placeholder="6"></label>
       </div>
     </div>
     <button class="btn primary block" style="margin-top:14px" data-action="confirm-workout-for-day" data-date="${date}">Guardar entrenamiento</button>
@@ -5153,7 +5179,7 @@ document.addEventListener('click', (e)=>{
     case 'run-estimate': runEstimate(); break;
     case 'confirm-estimate': confirmEstimate(); break;
     case 'confirm-photo-meal': confirmPhotoMeal(); break;
-    case 'delete-meal': deleteMeal(el.dataset.mealid); break;
+    case 'delete-meal': deleteMeal(el.dataset.mealid, el.dataset.date||todayISO()); break;
     case 'open-weighin': openWeighIn(el.dataset.date||null); break;
     case 'delete-weighin': deleteWeighIn(el.dataset.date); break;
     case 'confirm-weighin': confirmWeighIn(); break;
@@ -5165,6 +5191,8 @@ document.addEventListener('click', (e)=>{
     case 'confirm-extra-session': confirmExtraSession(); break;
     case 'delete-extra-session': removeExtraSession(el.dataset.id); break;
     case 'confirm-sleep': confirmSleepLog(el.dataset.date); break;
+    case 'delete-sleep-log': deleteSleepLog(el.dataset.date); break;
+    case 'delete-workout-log': deleteWorkoutLog(el.dataset.date); break;
     case 'save-profile': saveProfile(); break;
     case 'save-health-settings': saveHealthSettings(); break;
     case 'reset-data': resetData(); break;
