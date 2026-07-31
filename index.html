@@ -1781,26 +1781,18 @@ function todaysCalorieBalance(){
     projected, projectedProtein, nextPending, usedAverageFallback,
     diffFromGoal, diffFromGoalProjected, balanceExpected, proteinRemaining};
 }
-/* Colores según el balance ESPERADO al cerrar el día (nunca según el gasto parcial hasta ahora):
-   verde = déficit alineado (100-300 kcal) o cerca de mantenimiento en día de descanso;
-   amarillo = desviaciones pequeñas; naranja = superávit moderado; rojo solo en desviaciones grandes. */
-function balanceStatusColor(balanceExpected, isRestDay){
-  const deficit = -balanceExpected;
-  if(deficit>=100 && deficit<=300) return 'var(--success)';
-  if(Math.abs(balanceExpected)<=100) return isRestDay ? 'var(--success)' : 'var(--gamify)';
-  if(deficit>300 && deficit<=450) return 'var(--gamify)';
-  if(balanceExpected>0 && balanceExpected<=150) return 'var(--gamify)';
-  if(balanceExpected>150 && balanceExpected<=400) return 'oklch(0.68 0.19 55)';
-  return 'var(--danger)';
-}
-/* Semáforo simple de 3 colores para "cumplimiento de déficit calórico": verde 100-300 kcal,
-   naranja 301-500 kcal, rojo cualquier otro caso (incluye superávit o déficit fuera de rango). */
+/* Semáforo de déficit calórico (objetivo diario: 200-500 kcal de déficit):
+   verde = 200-500 kcal, naranja = 501-650 kcal, rojo = cualquier otro caso (incluye superávit o déficit <200 o >650). */
 function deficitComplianceColor(balance){
   if(balance==null) return 'var(--surface-3)';
   const deficit = -balance;
-  if(deficit>=100 && deficit<=300) return 'var(--success)';
-  if(deficit>300 && deficit<=500) return 'oklch(0.68 0.19 55)';
+  if(deficit>=200 && deficit<=500) return 'var(--success)';
+  if(deficit>500 && deficit<=650) return 'oklch(0.68 0.19 55)';
   return 'var(--danger)';
+}
+/* balanceStatusColor se mantiene como alias por compatibilidad — usa el mismo semáforo de 3 colores. */
+function balanceStatusColor(balanceExpected, isRestDay){
+  return deficitComplianceColor(balanceExpected);
 }
 /* Guarda un snapshot del balance ESPERADO de hoy (y los excesos de macros) en el historial */
 function recordDailyBalance(cb, sums){
@@ -1818,21 +1810,16 @@ function recordDailyBalance(cb, sums){
    nunca en el gasto parcial acumulado hasta la hora actual. */
 function calorieStatusMessages(cb){
   const lines = [];
-  const isRestDay = cb.burnToday.dayType==='rest-suggested';
   const b = cb.balanceExpected;
   const deficit = -b;
-  if(deficit>=100 && deficit<=300){
+  if(deficit>=200 && deficit<=500){
     lines.push(`Tu día está alineado con tu objetivo: se espera un déficit de aproximadamente ${deficit} kcal al cerrar el día.`);
-  } else if(deficit>300){
-    lines.push(`Tu déficit proyectado al cerrar el día es de aproximadamente ${deficit} kcal, mayor a tu objetivo. Revisa que estés consumiendo suficiente proteína y energía para recuperarte.`);
-  } else if(Math.abs(b)<=100){
-    lines.push(isRestDay
-      ? 'Se espera que cierres cerca de tu mantenimiento — normal en un día de descanso, y puede seguir siendo compatible con tu déficit promedio semanal.'
-      : 'Se espera que cierres el día cerca de tu mantenimiento. Revisa también tu promedio semanal.');
-  } else if(b>0 && b<=150){
-    lines.push(`Se espera un pequeño superávit de aproximadamente ${b} kcal al cerrar el día. Puedes dejar el día tal como está y revisar tu promedio semanal.`);
+  } else if(deficit>500){
+    lines.push(`Tu déficit proyectado al cerrar el día es de aproximadamente ${deficit} kcal, mayor a tu objetivo de 200-500 kcal. Revisa que estés consumiendo suficiente proteína y energía para recuperarte.`);
+  } else if(deficit>=0){
+    lines.push(`Tu déficit proyectado es de aproximadamente ${deficit} kcal, por debajo de tu objetivo de 200-500 kcal.`);
   } else {
-    lines.push(`Se espera un superávit de aproximadamente ${b} kcal al cerrar el día.`);
+    lines.push(`Se espera un superávit de aproximadamente ${b} kcal al cerrar el día — por debajo de tu objetivo de déficit (200-500 kcal).`);
   }
   if(cb.pendingKcal>0){
     lines.push(`Con las comidas que todavía tienes ${cb.usedAverageFallback?'estimadas':'planeadas'}, se espera que cierres el día en aproximadamente ${cb.projected} kcal consumidas.`);
@@ -1842,29 +1829,24 @@ function calorieStatusMessages(cb){
   }
   return lines;
 }
-/* Niveles de alerta según el balance ESPERADO al cerrar el día — nunca lenguaje de culpa, castigo o compensación */
+/* Niveles de alerta según el balance ESPERADO al cerrar el día — nunca lenguaje de culpa, castigo o compensación.
+   Objetivo diario: 200-500 kcal de déficit. */
 function dailyAlertLevel(cb){
   const b = cb.balanceExpected;
   const deficit = -b;
   const isRestDay = cb.burnToday.dayType==='rest-suggested';
   const trainingDone = cb.burnToday.source==='completado';
-  if(deficit>=100 && deficit<=300){
+  if(deficit>=200 && deficit<=500){
     return {level:1, message:'Tu día está alineado con tu objetivo. No necesitas modificar el plan ni agregar ejercicio.', recommendation:null, suggestMovement:false};
   }
-  if(deficit>300){
-    return {level:2, message:'Tu déficit proyectado es mayor a tu objetivo.', recommendation:'Revisa que estés consumiendo suficiente proteína y energía para recuperarte. No hace falta más ejercicio.', suggestMovement:false};
+  if(deficit>500){
+    return {level:2, message:'Tu déficit proyectado es mayor a tu objetivo (200-500 kcal).', recommendation:'Revisa que estés consumiendo suficiente proteína y energía para recuperarte. No hace falta más ejercicio.', suggestMovement:false};
   }
-  if(Math.abs(b)<=100){
-    return {level:1, message: isRestDay ? 'Se espera que cierres cerca de mantenimiento — normal en un día de descanso.' : 'Se espera que cierres cerca de mantenimiento. Revisa también tu promedio semanal.', recommendation:null, suggestMovement:false};
-  }
-  if(b>0 && b<=150){
-    return {level:2, message:'Se espera un pequeño superávit al cerrar el día.', recommendation:'Puedes mantener el día tal como está y revisar tu promedio semanal, o reducir ligeramente una comida pendiente.', suggestMovement:false};
-  }
-  // superávit > 150
+  // deficit < 200, incluye superávit: por debajo del objetivo
   if(cb.pendingKcal>0){
-    return {level:3, message:'Tu consumo esperado hoy supera tu gasto esperado.', recommendation:'Ajusta tus próximas comidas manteniendo la proteína — reduce aceite, salsas, aguacate y porciones de carbohidratos en tu próximo plato.', suggestMovement:false};
+    return {level:3, message:'Tu consumo esperado hoy no alcanza tu objetivo de déficit (200-500 kcal).', recommendation:'Ajusta tus próximas comidas manteniendo la proteína — reduce aceite, salsas, aguacate y porciones de carbohidratos en tu próximo plato.', suggestMovement:false};
   }
-  return {level:3, message:'Tu consumo de hoy está por encima del gasto esperado. Un solo día no determina tu progreso.', recommendation: trainingDone||isRestDay ? 'Puedes aumentar de forma opcional tu movimiento cotidiano con una caminata suave y retomar normalmente tu plan mañana.' : 'Puedes retomar normalmente tu plan mañana.', suggestMovement:true};
+  return {level:3, message:'Tu consumo de hoy está por debajo de tu objetivo de déficit (200-500 kcal). Un solo día no determina tu progreso.', recommendation: trainingDone||isRestDay ? 'Puedes aumentar de forma opcional tu movimiento cotidiano con una caminata suave y retomar normalmente tu plan mañana.' : 'Puedes retomar normalmente tu plan mañana.', suggestMovement:true};
 }
 /* Motor de recomendaciones: propone una versión más ligera del próximo plato pendiente, priorizando proteína y recortando primero grasa, luego carbohidratos.
    Si el margen disponible es demasiado bajo para una comida adecuada (punto 17), propone una comida ligera fija en vez de saltarla o reducirla a casi nada. */
@@ -3260,8 +3242,8 @@ function renderNutricion(){
         }).join('')}
       </div>
       <div class="row" style="gap:14px;margin-top:12px;flex-wrap:wrap">
-        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:var(--success);display:inline-block"></i><span class="faint">100-300 kcal</span></span>
-        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:oklch(0.68 0.19 55);display:inline-block"></i><span class="faint">301-500 kcal</span></span>
+        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:var(--success);display:inline-block"></i><span class="faint">200-500 kcal</span></span>
+        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:oklch(0.68 0.19 55);display:inline-block"></i><span class="faint">501-650 kcal</span></span>
         <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:var(--danger);display:inline-block"></i><span class="faint">Fuera de rango</span></span>
       </div>
     </div>
@@ -4924,7 +4906,7 @@ function dayGoalStatus(iso){
 /* Indicador de día del calendario: un solo anillo de proteína (% de la meta, como antes) con un punto
    sólido en el centro para el semáforo de déficit calórico. Se separan en dos canales visuales distintos
    (anillo = progreso hacia una meta, punto sólido = zona/estado) porque el déficit no es un "% completado"
-   — es una franja saludable (100-300 kcal) — y forzarlo a un anillo de progreso sería confuso de leer. */
+   — es una franja saludable (200-500 kcal) — y forzarlo a un anillo de progreso sería confuso de leer. */
 function calDayIndicator(status, size=36){
   const stroke = 3;
   const r = size/2 - stroke/2 - 1;
@@ -4990,8 +4972,8 @@ function renderCalendarSheet(){
     <div class="cal-grid">${cells.join('')}</div>
     <div class="row" style="gap:16px;margin-top:16px;justify-content:center;flex-wrap:wrap">
       <span class="row" style="gap:6px"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="none" stroke="var(--surface-3)" stroke-width="2"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="var(--ring-protein)" stroke-width="2" stroke-dasharray="28 41" stroke-linecap="round" transform="rotate(-90 8 8)"/></svg><span class="faint">Anillo: proteína</span></span>
-      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--success);display:inline-block"></i><span class="faint">Punto: déficit 100-300</span></span>
-      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:oklch(0.68 0.19 55);display:inline-block"></i><span class="faint">301-500</span></span>
+      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--success);display:inline-block"></i><span class="faint">Punto: déficit 200-500</span></span>
+      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:oklch(0.68 0.19 55);display:inline-block"></i><span class="faint">501-650</span></span>
       <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--danger);display:inline-block"></i><span class="faint">Fuera de rango</span></span>
     </div>
   `);
