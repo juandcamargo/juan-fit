@@ -2974,7 +2974,7 @@ function openExerciseSheet(exId){
       ${best?`<span class="tag gamify">${icon('trophy',13,{valign:'-2px'})} PR ${best.weight}kg</span>`:''}
     </div>
     ${allSetsDone
-      ? `<button class="btn primary block" data-action="close-sheet-action">${icon('check-circle',15,{valign:'-2px'})} Ejercicio completado — volver a la rutina</button>`
+      ? `<button class="btn primary block" style="margin-bottom:16px" data-action="close-sheet-action">${icon('check-circle',15,{valign:'-2px'})} Ejercicio completado — volver a la rutina</button>`
       : `<div class="holiday-banner" style="background:color-mix(in oklch, var(--strength) 14%, var(--surface));border-color:color-mix(in oklch, var(--strength) 30%, transparent)">
       ${icon('dumbbell',15,{valign:'-3px'})} No cuentes reps fijas: empuja hasta el <b>fallo técnico</b> (1-2 reps en reserva). Si haces más de ${ex.reps.split('-')[1]||ex.reps}, sube el peso la próxima vez.
     </div>`}
