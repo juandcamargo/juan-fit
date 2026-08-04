@@ -2083,21 +2083,27 @@ function maybeShowDailyRecap(){
   setTimeout(()=> openSheet(renderDailyRecapSheet(recap)), 500);
 }
 
-/* ---------- Split-sequence schedule logic (order-based, not weekday-bound) ---------- */
-function nextSplitDayAsOf(iso){
-  const completed = STATE.workoutLogs.filter(w=>w.completed && w.day>=1 && w.day<=6 && w.date<iso)
+/* ---------- Split-sequence schedule logic (order-based, not weekday-bound) ----------
+   Se rastrea qué días (1-6) ya se completaron dentro del ciclo actual, en vez de asumir
+   que siempre se sigue el orden 1→2→3→4→5→6. Así, si un día se cambia por otro (swap),
+   el día saltado sigue pendiente y se vuelve a proponer al día siguiente — nunca se repite
+   un día ya hecho ni se pierde uno saltado. */
+function splitCycleStateAsOf(iso){
+  const logs = STATE.workoutLogs.filter(w=>w.completed && w.day>=1 && w.day<=6 && w.date<iso)
     .sort((a,b)=> a.date<b.date?-1:a.date>b.date?1:0);
-  if(!completed.length) return 1;
-  const last = completed[completed.length-1];
-  return last.day>=6 ? 1 : last.day+1;
+  let doneSet = new Set();
+  let justFinishedAtDate = null;
+  logs.forEach(w=>{
+    doneSet.add(w.day);
+    if(doneSet.size===6){ doneSet = new Set(); justFinishedAtDate = w.date; }
+  });
+  const remaining = [1,2,3,4,5,6].filter(d=>!doneSet.has(d));
+  const nextDay = remaining.length ? Math.min(...remaining) : 1;
+  const cycleJustFinished = doneSet.size===0 && justFinishedAtDate!==null;
+  return {remaining, nextDay, cycleJustFinished};
 }
-function lastCompletedSplitLogAsOf(iso){
-  const completed = STATE.workoutLogs.filter(w=>w.completed && w.day>=1 && w.day<=6 && w.date<iso)
-    .sort((a,b)=> a.date<b.date?-1:a.date>b.date?1:0);
-  return completed.length ? completed[completed.length-1] : null;
-}
+function nextSplitDayAsOf(iso){ return splitCycleStateAsOf(iso).nextDay; }
 function nextSplitDay(){ return nextSplitDayAsOf(todayISO()); }
-function lastCompletedSplitLog(){ return lastCompletedSplitLogAsOf(todayISO()); }
 function scheduleForDate(iso){
   const existingToday = STATE.workoutLogs.find(w=>w.date===iso);
   if(existingToday){
@@ -2108,9 +2114,9 @@ function scheduleForDate(iso){
   const isWeekend = (dow===0 || dow===6);
   const override = STATE.dayOverrides[iso];
   const hasNanny = override && typeof override.nanny==='boolean' ? override.nanny : STATE.profile.nannyDefault;
-  const nextDay = nextSplitDayAsOf(iso);
-  const last = lastCompletedSplitLogAsOf(iso);
-  const cycleJustFinished = last && last.day===6 && last.date!==iso;
+  const cycleState = splitCycleStateAsOf(iso);
+  const nextDay = cycleState.nextDay;
+  const cycleJustFinished = cycleState.cycleJustFinished;
   const forcedRest = override?.rest === true;
   const forcedTrain = override?.rest === false;
 
@@ -2477,6 +2483,7 @@ function renderHoy(){
         <button class="btn primary block" data-action="start-home" data-day="${sched.day}">Empezar rutina en casa</button>
       </div>
       <button class="btn ghost block" style="margin-top:8px" data-action="toggle-nanny" data-date="${iso}">¿Hoy sí tienes niñera? Ir al gym en su lugar</button>
+      <button class="btn ghost block" style="margin-top:8px" data-action="open-swap-day">Cambiar día de entrenamiento</button>
       <button class="btn ghost block" style="margin-top:8px" data-action="mark-rest-today">No puedo entrenar hoy — marcar como descanso</button>
     </div>`;
   } else {
@@ -2510,7 +2517,8 @@ function renderHoy(){
         <button class="btn ghost" style="flex:1" data-action="go-workout" data-day="${sched.day}" data-mode="short">Corto</button>
       </div>` : `<button class="btn primary block" data-action="go-workout" data-day="${sched.day}">${doneToday?'Ver sesión':'Continuar sesión'}</button>`}
       ${cardioTips}
-      ${!sched.inProgress?`<button class="btn ghost block" style="margin-top:8px" data-action="mark-rest-today">No puedo entrenar hoy — marcar como descanso</button>`:''}
+      ${!sched.inProgress?`<button class="btn ghost block" style="margin-top:8px" data-action="open-swap-day">Cambiar día de entrenamiento</button>
+      <button class="btn ghost block" style="margin-top:8px" data-action="mark-rest-today">No puedo entrenar hoy — marcar como descanso</button>`:''}
     </div>`;
   }
 
@@ -3039,6 +3047,27 @@ function finishSession(){
 
 function startHomeRoutine(day){
   startSession(day, 'home');
+}
+
+function openSwapDaySheet(){
+  const sched = scheduleForToday();
+  const currentDay = sched.day;
+  const rows = [1,2,3,4,5,6].map(d=>{
+    const label = d===3 ? 'Cardio' : DAY_ORDER[d];
+    return `<div class="swap-option" role="button" tabindex="0" data-action="pick-swap-day" data-day="${d}">
+      <div><b style="font-size:14px">Día ${d} · ${label}</b>${d===currentDay?' <span class="faint">— programado hoy</span>':''}</div>
+    </div>`;
+  }).join('');
+  openSheet(`<h3>Cambiar día de entrenamiento</h3>
+    <p class="faint" style="margin-top:6px">Elige el día que quieres hacer hoy. El día programado (Día ${currentDay}) queda pendiente y la app te lo volverá a proponer mañana, sin repetir el que hagas hoy.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">${rows}</div>`);
+}
+function pickSwapDay(day){
+  const sched = scheduleForToday();
+  const isHome = sched.type==='home';
+  closeSheet();
+  if(isHome) startHomeRoutine(day);
+  else startSession(day, 'full');
 }
 
 function renderExerciseHistory(exId){
@@ -5168,6 +5197,8 @@ document.addEventListener('click', (e)=>{
     case 'go-workout': startSession(parseInt(el.dataset.day), el.dataset.mode||'full'); break;
     case 'skip-rest-today': skipRestToday(); break;
     case 'mark-rest-today': markTodayAsRest(); break;
+    case 'open-swap-day': openSwapDaySheet(); break;
+    case 'pick-swap-day': pickSwapDay(parseInt(el.dataset.day)); break;
     case 'open-rest-day-info': openRestDayInfo(); break;
     case 'open-calendar': openCalendar(); break;
     case 'cal-prev-month': shiftCalendarMonth(-1); break;
