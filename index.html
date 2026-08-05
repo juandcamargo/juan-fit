@@ -3171,7 +3171,7 @@ function renderNutricion(){
       if(!dish) return '';
       const logged = nut.planLogged[slot.id];
       return `<div class="divider" style="margin:10px 0"></div>
-        <div class="row between"><b style="font-size:13.5px">${slot.name}</b>${logged?`<span class="tag ${logged==='plan'?'strength':''}">${logged==='plan'?'Comiste esto':'Comiste otra cosa'}</span>`:''}</div>
+        <div class="row between"><b style="font-size:13.5px">${slot.name}</b>${logged?`<span class="row" style="gap:8px"><span class="tag ${logged==='plan'?'strength':''}">${logged==='plan'?'Comiste esto':'Comiste otra cosa'}</span><button data-action="reset-plan-slot" data-slot="${slot.id}" style="font-size:12px;font-weight:650;color:var(--strength);background:none;border:none;padding:0;text-decoration:underline">Deshacer</button></span>`:''}</div>
         <p style="font-size:13.5px;margin-top:4px">${dish.name}</p>
         <p class="faint" style="margin-top:2px">${dish.desc} · ${dish.kcal} kcal · P${dish.p} C${dish.c} G${dish.f}</p>
         ${!logged?`<div class="row" style="gap:8px;margin-top:8px">
@@ -3537,6 +3537,13 @@ function openLogMealForDay(date){
 }
 
 /* ---------- Weekly meal plan: log / alternative / edit ---------- */
+function resetPlanSlot(slotId){
+  const nut = ensureNutritionDay(todayISO());
+  nut.meals = nut.meals.filter(m=>m.slotId!==slotId); // limpia también el registro si aún queda uno colgado (p.ej. de antes de este arreglo, sin slotId enlazado a un borrado previo)
+  delete nut.planLogged[slotId];
+  saveState(); render();
+  toast('Ya puedes volver a registrar esta comida', {icon:'utensils'});
+}
 function logPlanMeal(slotId){
   const plan = getMealPlan();
   const dish = plan[todayPlanKey()]?.[slotId];
@@ -5235,6 +5242,7 @@ document.addEventListener('click', (e)=>{
     case 'log-workout-for-day': openLogWorkoutForDay(el.dataset.date); break;
     case 'confirm-workout-for-day': confirmWorkoutForDay(el.dataset.date); break;
     case 'log-plan-meal': logPlanMeal(el.dataset.slot); break;
+    case 'reset-plan-slot': resetPlanSlot(el.dataset.slot); break;
     case 'log-batido-option': logBatidoOption(el.dataset.batido); break;
     case 'open-plan-alt': openPlanAlternative(el.dataset.slot); break;
     case 'edit-meal-plan': editMealPlanScreen(); break;
