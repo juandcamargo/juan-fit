@@ -1904,7 +1904,7 @@ function openMealAdjustmentSheet(){
 function applyMealAdjustment(slotId, kcal, p, c, f){
   const nut = ensureNutritionDay(todayISO());
   const slot = MEAL_SLOTS.find(s=>s.id===slotId);
-  nut.meals.push({id:uid(), name:`${slot?slot.name:'Comida'} (versión ligera)`, kcal, p, c, f, isPlan:true});
+  nut.meals.push({id:uid(), name:`${slot?slot.name:'Comida'} (versión ligera)`, kcal, p, c, f, isPlan:true, slotId});
   nut.planLogged[slotId] = 'custom';
   saveState(); touchStreak(todayISO()); addXP(5); checkBadges();
   closeSheet(); toast('Comida ligera registrada', {icon:'utensils'}); render();
@@ -3369,8 +3369,12 @@ function pickFoodQty(foodId){
   $('#qtyInput').addEventListener('input', preview);
 }
 
-function consumePlanSlot(nut){
-  if(window.__currentPlanSlot){ nut.planLogged[window.__currentPlanSlot] = 'custom'; window.__currentPlanSlot = null; }
+function consumePlanSlot(nut, meal){
+  if(window.__currentPlanSlot){
+    nut.planLogged[window.__currentPlanSlot] = 'custom';
+    if(meal) meal.slotId = window.__currentPlanSlot;
+    window.__currentPlanSlot = null;
+  }
 }
 function confirmFood(foodId){
   const f = findFood(foodId);
@@ -3378,8 +3382,9 @@ function confirmFood(foodId){
   const m = foodMacros(f, qty);
   const dateIso = window.__loggingDate || todayISO();
   const nut = ensureNutritionDay(dateIso);
-  nut.meals.push({id:uid(), name:`${f.name} (${qty}${f.per===1?' u':'g'})`, ...m});
-  consumePlanSlot(nut);
+  const meal = {id:uid(), name:`${f.name} (${qty}${f.per===1?' u':'g'})`, ...m};
+  nut.meals.push(meal);
+  consumePlanSlot(nut, meal);
   saveState();
   touchStreak(dateIso);
   addXP(5);
@@ -3452,8 +3457,9 @@ function confirmEstimate(){
   const total = found.reduce((a,f)=>{ const m=foodMacros(f.food,f.qty); return {kcal:a.kcal+m.kcal,p:a.p+m.p,c:a.c+m.c,f:a.f+m.f}; },{kcal:0,p:0,c:0,f:0});
   const dateIso = window.__loggingDate || todayISO();
   const nut = ensureNutritionDay(dateIso);
-  nut.meals.push({id:uid(), name:'Plato descrito ('+found.map(f=>f.food.name).join(', ')+')', kcal:Math.round(total.kcal), p:round1(total.p), c:round1(total.c), f:round1(total.f)});
-  consumePlanSlot(nut);
+  const meal = {id:uid(), name:'Plato descrito ('+found.map(f=>f.food.name).join(', ')+')', kcal:Math.round(total.kcal), p:round1(total.p), c:round1(total.c), f:round1(total.f)};
+  nut.meals.push(meal);
+  consumePlanSlot(nut, meal);
   saveState(); touchStreak(dateIso); addXP(5); checkBadges();
   window.__loggingDate = null;
   closeSheet(); toast(dateIso===todayISO() ? 'Plato registrado con estimación' : `Plato registrado para ${fmtDateShort(dateIso)}`, {icon:'utensils'}); render();
@@ -3504,12 +3510,13 @@ function confirmPhotoMeal(){
   const macroKcal = Math.round(p*4 + c*4 + f*9);
   // Fuente única de verdad: si las kcal ingresadas se desvían >5% de lo que dan los macros, usar el valor derivado de los macros
   const kcal = (macroKcal>0 && Math.abs(enteredKcal-macroKcal) > macroKcal*0.05) ? macroKcal : (enteredKcal||macroKcal);
-  nut.meals.push({
+  const meal = {
     id:uid(), name: $('#photoMealName').value || 'Comida', photo: window.__pendingPhoto||null,
     kcal, p, c, f
-  });
+  };
+  nut.meals.push(meal);
   window.__pendingPhoto = null;
-  consumePlanSlot(nut);
+  consumePlanSlot(nut, meal);
   saveState(); touchStreak(dateIso); addXP(5); checkBadges();
   window.__loggingDate = null;
   closeSheet(); toast(dateIso===todayISO() ? 'Comida guardada' : `Comida guardada para ${fmtDateShort(dateIso)}`, {icon:'camera'}); render();
@@ -3535,7 +3542,7 @@ function logPlanMeal(slotId){
   const dish = plan[todayPlanKey()]?.[slotId];
   if(!dish) return;
   const nut = ensureNutritionDay(todayISO());
-  nut.meals.push({id:uid(), name:dish.name, kcal:dish.kcal, p:dish.p, c:dish.c, f:dish.f, isPlan:true});
+  nut.meals.push({id:uid(), name:dish.name, kcal:dish.kcal, p:dish.p, c:dish.c, f:dish.f, isPlan:true, slotId});
   nut.planLogged[slotId] = 'plan';
   saveState(); touchStreak(todayISO()); addXP(5); checkBadges();
   toast('Comida del plan registrada', {icon:'utensils'});
@@ -4264,8 +4271,8 @@ function deleteMeal(mealId, date=todayISO()){
     const suppId = mealId.replace(/^supp_/,'');
     if(nut.supplements[suppId]) nut.supplements[suppId] = false;
   }
-  if(removed && removed.slotId==='batido' && !nut.meals.some(m=>m.slotId==='batido')){
-    delete nut.planLogged.batido; // ya no queda ningún batido registrado ese día
+  if(removed && removed.slotId && !nut.meals.some(m=>m.slotId===removed.slotId)){
+    delete nut.planLogged[removed.slotId]; // ya no queda ningún registro de ese slot ese día — libera el botón "Comí esto"
   }
   saveState(); render();
   toast('Comida eliminada', {icon:'trash'});
