@@ -2518,7 +2518,8 @@ function renderHoy(){
       </div>` : `<button class="btn primary block" data-action="go-workout" data-day="${sched.day}">${doneToday?'Ver sesión':'Continuar sesión'}</button>`}
       ${cardioTips}
       ${!sched.inProgress?`<button class="btn ghost block" style="margin-top:8px" data-action="open-swap-day">Cambiar día de entrenamiento</button>
-      <button class="btn ghost block" style="margin-top:8px" data-action="mark-rest-today">No puedo entrenar hoy — marcar como descanso</button>`:''}
+      <button class="btn ghost block" style="margin-top:8px" data-action="mark-rest-today">No puedo entrenar hoy — marcar como descanso</button>`
+      :`<button class="btn ghost block" style="margin-top:8px;color:var(--danger)" data-action="delete-workout-log" data-date="${iso}">Elegí mal — borrar y volver a elegir</button>`}
     </div>`;
   }
 
@@ -4296,6 +4297,7 @@ function deleteSleepLog(date){
 function deleteWorkoutLog(date){
   openConfirmSheet(`¿Eliminar el entrenamiento de ${fmtDateShort(date)}?`, ()=>{
     STATE.workoutLogs = STATE.workoutLogs.filter(w=>w.date!==date);
+    if(SESSION && SESSION.date===date){ SESSION = null; VIEW_STACK.entreno = {mode:'week'}; }
     saveState();
     closeSheet();
     render();
