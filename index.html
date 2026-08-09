@@ -33,6 +33,7 @@
   --gamify-ink: oklch(0.18 0.03 75);
   --danger: oklch(0.58 0.22 25);
   --success: oklch(0.68 0.17 150);
+  --success-dark: oklch(0.42 0.14 150);
   /* Activity-ring trio: outer=calorías (Move red), middle=proteína (Exercise green), inner=ejercicio (Stand cyan) */
   --ring-cal: oklch(0.60 0.23 8);
   --ring-cal-2: oklch(0.74 0.20 30);
@@ -1266,6 +1267,7 @@ function defaultState(){
     lastSeenDate: null, // última fecha en que se abrió la app — dispara el resumen del día anterior
     extraSessions: {}, // date -> [{id, type, minutes, kcal}] sesiones adicionales opcionales, solo informativas
     dailyBalanceLog: {}, // date -> {consumed, tdee, meta, balance, macroOver:{kcal,p,c,f}} — historial de balance calórico y excesos de macros
+    recipes: [], // recetas propias guardadas: [{id, name, slot:'desayuno'|'almuerzo'|'cena', kcal, p, c, f}]
   };
 }
 let STATE = loadState();
@@ -1781,14 +1783,16 @@ function todaysCalorieBalance(){
     projected, projectedProtein, nextPending, usedAverageFallback,
     diffFromGoal, diffFromGoalProjected, balanceExpected, proteinRemaining};
 }
-/* Semáforo de déficit calórico (objetivo diario: 200-500 kcal de déficit):
-   verde = 200-500 kcal, naranja = 501-650 kcal, rojo = cualquier otro caso (incluye superávit o déficit <200 o >650). */
+/* Semáforo de déficit calórico:
+   rojo = superávit (o empate, sin déficit), naranja = déficit de 1 a 199 kcal,
+   verde = déficit de 200 a 500 kcal, verde oscuro = déficit mayor a 500 kcal. */
 function deficitComplianceColor(balance){
   if(balance==null) return 'var(--surface-3)';
   const deficit = -balance;
-  if(deficit>=200 && deficit<=500) return 'var(--success)';
-  if(deficit>500 && deficit<=650) return 'oklch(0.68 0.19 55)';
-  return 'var(--danger)';
+  if(deficit<=0) return 'var(--danger)';
+  if(deficit<200) return 'oklch(0.68 0.19 55)';
+  if(deficit<=500) return 'var(--success)';
+  return 'var(--success-dark)';
 }
 /* balanceStatusColor se mantiene como alias por compatibilidad — usa el mismo semáforo de 3 colores. */
 function balanceStatusColor(balanceExpected, isRestDay){
@@ -3204,6 +3208,23 @@ function renderNutricion(){
     </div>`).join('')}` : ''}
   </div>`;
 
+  const recetasCard = `<div class="card">
+    <div class="row between"><b style="font-size:15px">Mis recetas</b><button class="btn ghost sm" data-action="open-save-recipe">${icon('pencil',13,{valign:'-2px'})} Nueva receta</button></div>
+    ${STATE.recipes.length ? MEAL_SLOTS.filter(s=>s.id!=='batido').map(slot=>{
+      const items = STATE.recipes.filter(r=>r.slot===slot.id);
+      if(!items.length) return '';
+      return `<div class="divider" style="margin:10px 0"></div>
+        <b style="font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-muted)">${slot.name}</b>
+        ${items.map(r=>`<div class="food-item" style="margin-top:8px">
+          <div><b style="font-size:13.5px">${r.name}</b><div class="faint">${r.kcal} kcal · P${r.p} C${r.c} G${r.f}</div></div>
+          <div class="row" style="gap:6px">
+            <button class="btn nutrition sm" data-action="log-recipe" data-recipe="${r.id}">Registrar</button>
+            <button class="icon-btn" data-action="delete-recipe" data-recipe="${r.id}" style="width:30px;height:30px">${icon('trash',14)}</button>
+          </div>
+        </div>`).join('')}`;
+    }).join('') : `<p class="faint" style="margin-top:8px">Guarda tus platos habituales para registrarlos rápido cuando comas algo distinto al plan del día.</p>`}
+  </div>`;
+
   $('#view-root').innerHTML = `<div class="view">
     <h2 class="section-title">Nutrición</h2>
     <div class="card">
@@ -3212,6 +3233,7 @@ function renderNutricion(){
     </div>
     ${planCard}
     ${batidoCard}
+    ${recetasCard}
 
     <div class="card">
       <b style="font-size:15px">Registrar comida</b>
@@ -3264,9 +3286,10 @@ function renderNutricion(){
         }).join('')}
       </div>
       <div class="row" style="gap:14px;margin-top:12px;flex-wrap:wrap">
+        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:var(--danger);display:inline-block"></i><span class="faint">Superávit</span></span>
+        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:oklch(0.68 0.19 55);display:inline-block"></i><span class="faint">1-199 kcal</span></span>
         <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:var(--success);display:inline-block"></i><span class="faint">200-500 kcal</span></span>
-        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:oklch(0.68 0.19 55);display:inline-block"></i><span class="faint">501-650 kcal</span></span>
-        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:var(--danger);display:inline-block"></i><span class="faint">Fuera de rango</span></span>
+        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:var(--success-dark);display:inline-block"></i><span class="faint">&gt;500 kcal</span></span>
       </div>
     </div>
   </div>`;
@@ -3556,6 +3579,61 @@ function logPlanMeal(slotId){
   toast('Comida del plan registrada', {icon:'utensils'});
   render();
 }
+function openSaveRecipeSheet(defaultSlot){
+  openSheet(`
+    <h3>Nueva receta</h3>
+    <p class="faint">Guárdala una vez y regístrala rápido cada vez que la comas, aunque no esté en el plan del día.</p>
+    <label class="field"><span>Nombre</span><input type="text" id="recipeName" placeholder="Ej: Bowl de pollo y arroz"></label>
+    <label class="field"><span>Comida</span>
+      <select id="recipeSlot">
+        ${MEAL_SLOTS.filter(s=>s.id!=='batido').map(s=>`<option value="${s.id}" ${s.id===defaultSlot?'selected':''}>${s.name}</option>`).join('')}
+      </select>
+    </label>
+    <div class="grid3">
+      <label class="field"><span>Kcal</span><input type="text" inputmode="decimal" id="recipeKcal"></label>
+      <label class="field"><span>Prot (g)</span><input type="text" inputmode="decimal" id="recipeP"></label>
+      <label class="field"><span>Carbs (g)</span><input type="text" inputmode="decimal" id="recipeC"></label>
+    </div>
+    <label class="field"><span>Grasa (g)</span><input type="text" inputmode="decimal" id="recipeF"></label>
+    <button class="btn nutrition block" style="margin-top:12px" data-action="save-recipe">Guardar receta</button>
+  `);
+}
+function saveRecipe(){
+  const name = $('#recipeName').value.trim();
+  if(!name){ toast('Ponle un nombre a la receta', {icon:'alert-triangle'}); return; }
+  const slot = $('#recipeSlot').value;
+  const kcal = Math.round(parseDecimal($('#recipeKcal').value)||0);
+  const p = round1(parseDecimal($('#recipeP').value)||0);
+  const c = round1(parseDecimal($('#recipeC').value)||0);
+  const f = round1(parseDecimal($('#recipeF').value)||0);
+  if(!kcal){ toast('Ingresa al menos las kcal de la receta', {icon:'alert-triangle'}); return; }
+  STATE.recipes.push({id:uid(), name, slot, kcal, p, c, f});
+  saveState();
+  closeSheet();
+  toast('Receta guardada', {icon:'check-circle'});
+  render();
+}
+function deleteRecipe(id){
+  openConfirmSheet('¿Eliminar esta receta guardada?', ()=>{
+    STATE.recipes = STATE.recipes.filter(r=>r.id!==id);
+    saveState();
+    closeSheet();
+    render();
+    toast('Receta eliminada', {icon:'trash'});
+  });
+}
+function logRecipe(recipeId){
+  const r = STATE.recipes.find(x=>x.id===recipeId);
+  if(!r) return;
+  const nut = ensureNutritionDay(todayISO());
+  nut.meals.push({id:uid(), name:r.name, kcal:r.kcal, p:r.p, c:r.c, f:r.f, isPlan:true, slotId:r.slot});
+  nut.planLogged[r.slot] = 'custom';
+  window.__currentPlanSlot = null;
+  saveState(); touchStreak(todayISO()); addXP(5); checkBadges();
+  closeSheet();
+  toast('Receta registrada', {icon:'utensils'});
+  render();
+}
 function logBatidoOption(variantId){
   const variant = BATIDO_OPTIONS.find(b=>b.id===variantId);
   if(!variant) return;
@@ -3570,12 +3648,27 @@ function logBatidoOption(variantId){
 function openPlanAlternative(slotId){
   window.__currentPlanSlot = slotId;
   const slot = MEAL_SLOTS.find(s=>s.id===slotId);
+  const savedForSlot = STATE.recipes.filter(r=>r.slot===slotId);
   openSheet(`
     <h3>¿Qué comiste en ${slot.name.toLowerCase()}?</h3>
     <p class="faint">Regístralo y lo diferenciamos de tu plan habitual.</p>
+    ${savedForSlot.length ? `<button class="btn nutrition block" style="margin-top:10px" data-action="open-recipe-picker" data-slot="${slotId}">${icon('utensils',15,{valign:'-3px'})} Elegir receta guardada</button>` : ''}
     <div class="row" style="gap:8px;margin-top:10px">
-      <button class="btn nutrition" style="flex:1" data-action="open-food-search">${icon('search',15,{valign:'-3px'})} Buscar alimento</button>
+      <button class="btn ${savedForSlot.length?'ghost':'nutrition'}" style="flex:1" data-action="open-food-search">${icon('search',15,{valign:'-3px'})} Buscar alimento</button>
       <button class="btn ghost" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
+    </div>
+  `);
+}
+function openRecipePicker(slotId){
+  const slot = MEAL_SLOTS.find(s=>s.id===slotId);
+  const items = STATE.recipes.filter(r=>r.slot===slotId);
+  openSheet(`
+    <h3>Recetas guardadas — ${slot.name.toLowerCase()}</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+      ${items.length ? items.map(r=>`
+        <div class="swap-option" role="button" tabindex="0" data-action="log-recipe" data-recipe="${r.id}">
+          <div><b style="font-size:13.5px">${r.name}</b><div class="faint">${r.kcal} kcal · P${r.p} C${r.c} G${r.f}</div></div>
+        </div>`).join('') : `<p class="faint">Aún no tienes recetas guardadas para ${slot.name.toLowerCase()}.</p>`}
     </div>
   `);
 }
@@ -5012,9 +5105,10 @@ function renderCalendarSheet(){
     <div class="cal-grid">${cells.join('')}</div>
     <div class="row" style="gap:16px;margin-top:16px;justify-content:center;flex-wrap:wrap">
       <span class="row" style="gap:6px"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="none" stroke="var(--surface-3)" stroke-width="2"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="var(--ring-protein)" stroke-width="2" stroke-dasharray="28 41" stroke-linecap="round" transform="rotate(-90 8 8)"/></svg><span class="faint">Anillo: proteína</span></span>
-      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--success);display:inline-block"></i><span class="faint">Punto: déficit 200-500</span></span>
-      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:oklch(0.68 0.19 55);display:inline-block"></i><span class="faint">501-650</span></span>
-      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--danger);display:inline-block"></i><span class="faint">Fuera de rango</span></span>
+      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--danger);display:inline-block"></i><span class="faint">Punto: superávit</span></span>
+      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:oklch(0.68 0.19 55);display:inline-block"></i><span class="faint">1-199</span></span>
+      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--success);display:inline-block"></i><span class="faint">200-500</span></span>
+      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--success-dark);display:inline-block"></i><span class="faint">&gt;500</span></span>
     </div>
   `);
 }
@@ -5247,6 +5341,11 @@ document.addEventListener('click', (e)=>{
     case 'reset-plan-slot': resetPlanSlot(el.dataset.slot); break;
     case 'log-batido-option': logBatidoOption(el.dataset.batido); break;
     case 'open-plan-alt': openPlanAlternative(el.dataset.slot); break;
+    case 'open-recipe-picker': openRecipePicker(el.dataset.slot); break;
+    case 'open-save-recipe': openSaveRecipeSheet(el.dataset.slot); break;
+    case 'save-recipe': saveRecipe(); break;
+    case 'delete-recipe': deleteRecipe(el.dataset.recipe); break;
+    case 'log-recipe': logRecipe(el.dataset.recipe); break;
     case 'edit-meal-plan': editMealPlanScreen(); break;
     case 'edit-meal-plan-day': editMealPlanDay(el.dataset.day); break;
     case 'save-meal-plan-day': saveMealPlanDay(el.dataset.day); break;
