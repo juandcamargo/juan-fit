@@ -2945,7 +2945,7 @@ function openExerciseSheet(exId){
     return `<div class="set-row ${s?'done':''}" data-setidx="${i}">
       <div class="idx">${i+1}</div>
       <input type="text" inputmode="decimal" placeholder="${last}" value="${s?s.weight:''}" data-role="weight" style="text-align:center">
-      <input type="text" placeholder="reps (${ex.reps})" value="${s?(s.reps??''):''}" data-role="reps" style="text-align:center">
+      <input type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')" placeholder="reps (${ex.reps})" value="${s?(s.reps??''):''}" data-role="reps" style="text-align:center">
       <button class="icon-btn" data-action="log-set" data-exid="${ex.id}" data-baseid="${base.id}" data-idx="${i}" style="background:${s?'var(--success)':'var(--strength)'};color:${s?'#0a1f13':'var(--strength-ink)'}">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
       </button>
