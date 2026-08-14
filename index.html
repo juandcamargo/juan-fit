@@ -181,9 +181,9 @@ button{ font-family: inherit; }
   transition: transform .18s var(--ease-spring), background .2s var(--ease), box-shadow .25s var(--ease);
 }
 .btn:active{ transform: scale(0.95); }
-.btn.primary{ background: linear-gradient(155deg, var(--strength-2), var(--strength)); color: var(--strength-ink); box-shadow: 0 10px 22px -10px color-mix(in oklch, var(--strength) 65%, transparent); }
-.btn.nutrition{ background: linear-gradient(155deg, var(--nutrition-2), var(--nutrition)); color: var(--nutrition-ink); box-shadow: 0 10px 22px -10px color-mix(in oklch, var(--nutrition) 55%, transparent); }
-.btn.sleep{ background: linear-gradient(155deg, var(--sleep-2), var(--sleep)); color: var(--sleep-ink); box-shadow: 0 10px 22px -10px color-mix(in oklch, var(--sleep) 55%, transparent); }
+.btn.primary{ background: var(--strength); color: var(--strength-ink); box-shadow: 0 10px 22px -10px color-mix(in oklch, var(--strength) 65%, transparent); }
+.btn.nutrition{ background: var(--nutrition); color: var(--nutrition-ink); box-shadow: 0 10px 22px -10px color-mix(in oklch, var(--nutrition) 55%, transparent); }
+.btn.sleep{ background: var(--sleep); color: var(--sleep-ink); box-shadow: 0 10px 22px -10px color-mix(in oklch, var(--sleep) 55%, transparent); }
 .btn.ghost{ background: transparent; border:1.5px solid var(--hairline); box-shadow:none; }
 .btn.block{ width:100%; }
 .btn.sm{ padding:9px 15px; font-size:13px; border-radius:999px; }
@@ -670,7 +670,7 @@ function wireSparklines(){
 }
 
 let __ringSeq = 0;
-function ring(pct, {size=64, stroke=8, color='var(--strength)', label='', sub='', overLabel=''}={}){
+function ring(pct, {size=64, stroke=6, color='var(--strength)', label='', sub='', overLabel=''}={}){
   const r = (size-stroke)/2, c = 2*Math.PI*r;
   const over = pct>1;
   const off = c - clamp(pct,0,1)*c;
@@ -701,7 +701,7 @@ function ring(pct, {size=64, stroke=8, color='var(--strength)', label='', sub=''
       <circle class="ring-fill enter" cx="${size/2}" cy="${size/2}" r="${r}" stroke-width="${stroke}" stroke="url(#${gid})" stroke-dasharray="${c}" stroke-dashoffset="${c}" data-target="${off}"/>
       ${over?`<circle class="ring-fill enter" cx="${size/2}" cy="${size/2}" r="${r*0.72}" stroke-width="${stroke*0.55}" stroke-linecap="round" stroke="url(#${gid2})" stroke-dasharray="${2*Math.PI*r*0.72}" stroke-dashoffset="${2*Math.PI*r*0.72}" data-target="${2*Math.PI*r*0.72 - (overFraction||0.03)*2*Math.PI*r*0.72}" opacity=".95"/>`:''}
     </svg>
-    <div class="ring-label"><b style="font-size:${size*0.22}px;font-weight:500;display:block">${label}</b>${sub?`<span style="font-size:${size*0.12}px;color:var(--ink-muted)">${sub}</span>`:''}${over?`<span style="display:block;font-size:${size*0.12}px;font-weight:500;color:${color}">${extraLaps>0?`+${extraLaps+1}× meta`:`+${Math.round((pct-1)*100)}%`}</span>`:(overLabel?`<span style="display:block;font-size:${size*0.13}px;font-weight:500;color:var(--danger)">${overLabel}</span>`:'')}</div>
+    <div class="ring-label"><b style="font-size:${size*0.22}px;font-weight:500;letter-spacing:-0.01em;display:block;margin-bottom:${size*0.03}px">${label}</b>${sub?`<span style="font-size:${size*0.12}px;letter-spacing:.01em;color:var(--ink-muted)">${sub}</span>`:''}${over?`<span style="display:block;font-size:${size*0.12}px;font-weight:500;letter-spacing:.01em;color:${color}">${extraLaps>0?`+${extraLaps+1}× meta`:`+${Math.round((pct-1)*100)}%`}</span>`:(overLabel?`<span style="display:block;font-size:${size*0.13}px;font-weight:500;letter-spacing:.01em;color:var(--danger)">${overLabel}</span>`:'')}</div>
   </div>`;
 }
 function animateRingsIn(){
@@ -2686,20 +2686,20 @@ function renderHoy(){
   const sleepGoal = STATE.profile.sleepGoalHours || 7;
   const sleepHours = sleepEntry ? sleepEntry.totalMin/60 : 0;
   const sleepCard = `<div class="card">
-    <div class="row between"><span class="tag sleep">${icon('moon',13,{valign:'-2px'})} Sueño y recuperación</span>${rscore!==null?`<span class="faint">Recuperación ${rscore}/100</span>`:''}</div>
+    <div class="row between"><b style="font-size:15px">Sueño y recuperación</b>${rscore!==null?`<span class="faint">Recuperación ${rscore}/100</span>`:''}</div>
     <div class="row" style="justify-content:center;margin-top:12px">
-      ${ring(sleepEntry?clamp(sleepHours/sleepGoal,0,1):0, {size:128, stroke:16, color:'var(--sleep)', label: sleepEntry?sleepHours.toFixed(1)+'h':'—', sub:`/ ${sleepGoal}h meta`})}
+      ${ring(sleepEntry?clamp(sleepHours/sleepGoal,0,1):0, {size:128, stroke:9, color:'var(--sleep)', label: sleepEntry?sleepHours.toFixed(1)+'h':'—', sub:`/ ${sleepGoal}h meta`})}
     </div>
     <p style="font-size:13.5px;margin-top:12px;line-height:1.5" class="muted">${advice.text}</p>
     <button class="btn sleep block" style="margin-top:12px" data-action="open-sleep-log" data-date="${iso}">${sleepEntry?'Editar registro de sueño':'Registrar sueño de anoche'}</button>
   </div>`;
 
   const macroCard = `<div class="card">
-    <div class="row between"><span class="tag nutrition">${icon('utensils',13,{valign:'-2px'})} Nutrición de hoy</span><a class="link faint" data-action="nav" data-tab="nutricion">Ver todo →</a></div>
+    <div class="row between"><b style="font-size:15px">Nutrición de hoy</b><a class="link faint" data-action="nav" data-tab="nutricion">Ver todo →</a></div>
     ${targets.isRestDay?`<p class="faint" style="margin-top:8px">${icon('wave',12,{valign:'-2px'})} Día de descanso — calorías y carbos ajustados a la baja</p>`:''}
     <div class="row" style="justify-content:space-around;margin-top:12px">
-      ${ring(sums.kcal/targets.kcal, {size:128, stroke:16, color:'var(--ring-cal)', label:Math.round(sums.kcal), sub:`/ ${targets.kcal} kcal`, overLabel: sums.kcal>targets.kcal?`+${Math.round(sums.kcal-targets.kcal)} kcal`:''})}
-      ${ring(sums.p/targets.p, {size:128, stroke:16, color:'var(--ring-protein)', label:Math.round(sums.p)+'g', sub:`/ ${targets.p}g prot`, overLabel: sums.p>targets.p?`+${round1(sums.p-targets.p)}g`:''})}
+      ${ring(sums.kcal/targets.kcal, {size:128, stroke:9, color:'var(--ring-cal)', label:Math.round(sums.kcal), sub:`/ ${targets.kcal} kcal`, overLabel: sums.kcal>targets.kcal?`+${Math.round(sums.kcal-targets.kcal)} kcal`:''})}
+      ${ring(sums.p/targets.p, {size:128, stroke:9, color:'var(--ring-protein)', label:Math.round(sums.p)+'g', sub:`/ ${targets.p}g prot`, overLabel: sums.p>targets.p?`+${round1(sums.p-targets.p)}g`:''})}
     </div>
     <div class="row" style="gap:8px;margin-top:14px">
       ${SUPPLEMENTS.map(s=>`<button class="btn sm ${nut.supplements&&nut.supplements[s.id]?'primary':'ghost'}" style="flex:1" data-action="toggle-supp" data-date="${iso}" data-supp="${s.id}">${icon(s.icon,14,{valign:'-2px'})} ${s.name}</button>`).join('')}
@@ -3303,7 +3303,7 @@ function renderNutricion(){
     const colors = {kcal:'var(--ring-cal)',p:'var(--ring-protein)',c:'var(--gamify)',f:'var(--sleep)'};
     const unit = k==='kcal'?'':'g';
     const overAmt = sums[k]>targets[k] ? round1(sums[k]-targets[k]) : 0;
-    return `<div style="text-align:center">${ring(sums[k]/targets[k],{size:104,stroke:10,color:colors[k],label:Math.round(sums[k])+unit,sub:'/'+targets[k]+unit,overLabel:overAmt?`+${overAmt}${unit}`:''})}<div class="faint" style="margin-top:6px">${names[k]}</div></div>`;
+    return `<div style="text-align:center">${ring(sums[k]/targets[k],{size:104,stroke:8,color:colors[k],label:Math.round(sums[k])+unit,sub:'/'+targets[k]+unit,overLabel:overAmt?`+${overAmt}${unit}`:''})}<div class="faint" style="margin-top:6px">${names[k]}</div></div>`;
   }).join('');
 
   const mealRows = nut.meals.map(m=>{
