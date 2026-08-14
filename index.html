@@ -44,6 +44,11 @@
   --ring-protein-2: color-mix(in oklch, #95dfd7 60%, white);
   --ring-exercise: oklch(0.76 0.13 210);
   --ring-exercise-2: oklch(0.86 0.11 200);
+  /* Semáforo de déficit calórico: superávit, 1-199 kcal, 200-500 kcal, >500 kcal */
+  --deficit-surplus: #e5575e;
+  --deficit-low: #faed70;
+  --deficit-good: #95dfd9;
+  --deficit-great: #31a39a;
   --radius-s: 12px;
   --radius-m: 18px;
   --radius-l: 24px;
@@ -369,6 +374,7 @@ a.link{ color: var(--strength); font-weight:500; text-decoration:none; }
 .food-item:last-child{ border:none; }
 .macro-chip{ display:flex; gap:8px; font-size:11px; color:var(--ink-faint); margin-top:2px; }
 .chart-wrap{ width:100%; overflow:visible; position:relative; touch-action:pan-y; }
+.chart-wrap svg{ overflow:visible; }
 .spark-endpoints{ display:flex; justify-content:space-between; margin-bottom:6px; }
 .spark-endpoint span{ display:block; font-size:11px; color:var(--ink-faint); }
 .spark-endpoint b{ display:block; font-size:16px; margin-top:1px; }
@@ -1422,10 +1428,32 @@ function defaultState(){
     extraSessions: {}, // date -> [{id, type, minutes, kcal}] sesiones adicionales opcionales, solo informativas
     dailyBalanceLog: {}, // date -> {consumed, tdee, meta, balance, macroOver:{kcal,p,c,f}} — historial de balance calórico y excesos de macros
     recipes: [], // recetas propias guardadas: [{id, name, slot:'desayuno'|'almuerzo'|'cena', kcal, p, c, f}]
+    recipesSeeded: false, // true una vez que se agregaron los platos del plan semanal a "Mis recetas"
     customExtraItems: {}, // categoryId -> [{name, kcal, carbs, sugar, addedSugar, fat, sat, protein, sodium, fiber}] — alimentos personalizados guardados por categoría
   };
 }
 let STATE = loadState();
+/* La primera vez, agrega a "Mis recetas" los desayunos/almuerzos/cenas únicos del plan semanal
+   (lunes-viernes) para que el usuario pueda elegir rápido "lo que ya come" en vez de describir el
+   plato cada vez. No se repite en cargas siguientes ni si el usuario borra alguna receta sembrada. */
+function seedPlanRecipes(){
+  if(STATE.recipesSeeded) return;
+  const weekdays = ['lunes','martes','miercoles','jueves','viernes'];
+  const seen = new Set(STATE.recipes.map(r=>r.slot+'|'+r.name));
+  MEAL_SLOTS.filter(s=>s.id!=='batido').forEach(slot=>{
+    weekdays.forEach(day=>{
+      const dish = DEFAULT_MEAL_PLAN[day]?.[slot.id];
+      if(!dish) return;
+      const key = slot.id+'|'+dish.name;
+      if(seen.has(key)) return;
+      seen.add(key);
+      STATE.recipes.push({id:uid(), name:dish.name, slot:slot.id, kcal:dish.kcal, p:dish.p, c:dish.c, f:dish.f});
+    });
+  });
+  STATE.recipesSeeded = true;
+  saveState();
+}
+seedPlanRecipes();
 function loadState(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
@@ -1944,10 +1972,10 @@ function todaysCalorieBalance(){
 function deficitComplianceColor(balance){
   if(balance==null) return 'var(--surface-3)';
   const deficit = -balance;
-  if(deficit<=0) return 'var(--danger)';
-  if(deficit<200) return 'oklch(0.68 0.19 55)';
-  if(deficit<=500) return 'var(--success)';
-  return 'var(--success-dark)';
+  if(deficit<=0) return 'var(--deficit-surplus)';
+  if(deficit<200) return 'var(--deficit-low)';
+  if(deficit<=500) return 'var(--deficit-good)';
+  return 'var(--deficit-great)';
 }
 /* balanceStatusColor se mantiene como alias por compatibilidad — usa el mismo semáforo de 3 colores. */
 function balanceStatusColor(balanceExpected, isRestDay){
@@ -3330,7 +3358,7 @@ function renderNutricion(){
     const colors = {kcal:'var(--ring-cal)',p:'var(--ring-protein)',c:'var(--gamify)',f:'var(--sleep)'};
     const unit = k==='kcal'?'':'g';
     const overAmt = sums[k]>targets[k] ? round1(sums[k]-targets[k]) : 0;
-    return `<div style="text-align:center">${ring(sums[k]/targets[k],{size:104,stroke:8,color:colors[k],label:Math.round(sums[k])+unit,sub:'/'+targets[k]+unit,overLabel:overAmt?`+${overAmt}${unit}`:''})}<div class="faint" style="margin-top:6px">${names[k]}</div></div>`;
+    return `<div style="text-align:center">${ring(sums[k]/targets[k],{size:128,stroke:9,color:colors[k],label:Math.round(sums[k])+unit,sub:'/'+targets[k]+unit,overLabel:overAmt?`+${overAmt}${unit}`:''})}<div class="faint" style="margin-top:6px">${names[k]}</div></div>`;
   }).join('');
 
   const mealRows = nut.meals.map(m=>{
@@ -3439,10 +3467,16 @@ function renderNutricion(){
     </div>
     ${planCard}
     ${batidoCard}
+
+    <div class="card">
+      <b style="font-size:15px">Suplementación de hoy</b>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:12px">${suppHtml}</div>
+    </div>
+
     ${recetasCard}
 
     <div class="card">
-      <div class="row between"><b style="font-size:15px">Registrar comida</b><a class="link faint" data-action="open-extras-trends">Tendencias de antojos</a></div>
+      <b style="font-size:15px">Registrar comida</b>
       <div class="row" style="gap:8px;margin-top:10px">
         <button class="btn light" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
         <button class="btn ghost" style="flex:1" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Manualmente</button>
@@ -3461,11 +3495,6 @@ function renderNutricion(){
     </div>
 
     <div class="card">
-      <b style="font-size:15px">Suplementación de hoy</b>
-      <div style="margin-top:10px;display:flex;flex-direction:column;gap:12px">${suppHtml}</div>
-    </div>
-
-    <div class="card">
       <div class="row between"><b style="font-size:15px">${icon('droplet',15,{valign:'-3px'})} Hidratación</b><span class="faint">${waterGlasses} / ${STATE.profile.waterGoalGlasses||8} vasos hoy</span></div>
       <button class="btn light block" style="margin-top:10px" data-action="log-water">+ Agregar vaso de agua</button>
     </div>
@@ -3480,10 +3509,10 @@ function renderNutricion(){
         }).join('')}
       </div>
       <div class="row" style="gap:14px;margin-top:12px;flex-wrap:wrap">
-        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:var(--danger);display:inline-block"></i><span class="faint">Superávit</span></span>
-        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:oklch(0.68 0.19 55);display:inline-block"></i><span class="faint">1-199 kcal</span></span>
-        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:var(--success);display:inline-block"></i><span class="faint">200-500 kcal</span></span>
-        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:var(--success-dark);display:inline-block"></i><span class="faint">&gt;500 kcal</span></span>
+        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:var(--deficit-surplus);display:inline-block"></i><span class="faint">Superávit</span></span>
+        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:var(--deficit-low);display:inline-block"></i><span class="faint">1-199 kcal</span></span>
+        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:var(--deficit-good);display:inline-block"></i><span class="faint">200-500 kcal</span></span>
+        <span class="row" style="gap:5px"><i style="width:8px;height:8px;border-radius:50%;background:var(--deficit-great);display:inline-block"></i><span class="faint">&gt;500 kcal</span></span>
       </div>
     </div>
   </div>`;
@@ -3840,28 +3869,23 @@ function logBatidoOption(variantId){
 }
 function openPlanAlternative(slotId){
   window.__currentPlanSlot = slotId;
-  const slot = MEAL_SLOTS.find(s=>s.id===slotId);
-  const savedForSlot = STATE.recipes.filter(r=>r.slot===slotId);
-  openSheet(`
-    <h3>¿Qué comiste en ${slot.name.toLowerCase()}?</h3>
-    <p class="faint">Regístralo y lo diferenciamos de tu plan habitual.</p>
-    ${savedForSlot.length ? `<button class="btn nutrition block" style="margin-top:10px" data-action="open-recipe-picker" data-slot="${slotId}">${icon('utensils',15,{valign:'-3px'})} Elegir receta guardada</button>` : ''}
-    <div class="row" style="gap:8px;margin-top:10px">
-      <button class="btn ${savedForSlot.length?'ghost':'light'}" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
-      <button class="btn ghost" style="flex:1" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Manualmente</button>
-    </div>
-  `);
+  openRecipePicker(slotId);
 }
 function openRecipePicker(slotId){
   const slot = MEAL_SLOTS.find(s=>s.id===slotId);
   const items = STATE.recipes.filter(r=>r.slot===slotId);
   openSheet(`
-    <h3>Recetas guardadas — ${slot.name.toLowerCase()}</h3>
+    <h3>¿Qué comiste en ${slot.name.toLowerCase()}?</h3>
+    <p class="faint">Elige algo que ya sueles comer, o descríbelo si fue distinto.</p>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
       ${items.length ? items.map(r=>`
         <div class="swap-option" role="button" tabindex="0" data-action="log-recipe" data-recipe="${r.id}">
           <div><b style="font-size:13.5px">${r.name}</b><div class="faint">${r.kcal} kcal · P${r.p} C${r.c} G${r.f}</div></div>
         </div>`).join('') : `<p class="faint">Aún no tienes recetas guardadas para ${slot.name.toLowerCase()}.</p>`}
+    </div>
+    <div class="row" style="gap:8px;margin-top:14px">
+      <button class="btn light" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
+      <button class="btn ghost" style="flex:1" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Manualmente</button>
     </div>
   `);
 }
@@ -4809,7 +4833,7 @@ function renderProgreso(){
       <b style="font-size:15px">Peso (kg)</b>${sparkline(weightPts,{unit:'kg',color:'var(--strength)'})}
     </div>
     <div class="card">
-      <b style="font-size:15px">% grasa corporal (Navy method)</b>${sparkline(bfPts,{unit:'%',color:'var(--nutrition)'})}
+      <b style="font-size:15px">% grasa corporal (Navy method)</b>${sparkline(bfPts,{unit:'%',color:'#fcee72'})}
     </div>
 
     ${STATE.bodyLogs.length?`<div class="card flush">
@@ -5355,10 +5379,10 @@ function renderCalendarSheet(){
     <div class="cal-grid">${cells.join('')}</div>
     <div class="row" style="gap:16px;margin-top:16px;justify-content:center;flex-wrap:wrap">
       <span class="row" style="gap:6px"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="none" stroke="var(--surface-3)" stroke-width="2"/><circle cx="8" cy="8" r="6.5" fill="none" stroke="var(--ring-protein)" stroke-width="2" stroke-dasharray="28 41" stroke-linecap="round" transform="rotate(-90 8 8)"/></svg><span class="faint">Anillo: proteína</span></span>
-      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--danger);display:inline-block"></i><span class="faint">Punto: superávit</span></span>
-      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:oklch(0.68 0.19 55);display:inline-block"></i><span class="faint">1-199</span></span>
-      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--success);display:inline-block"></i><span class="faint">200-500</span></span>
-      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--success-dark);display:inline-block"></i><span class="faint">&gt;500</span></span>
+      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--deficit-surplus);display:inline-block"></i><span class="faint">Punto: superávit</span></span>
+      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--deficit-low);display:inline-block"></i><span class="faint">1-199</span></span>
+      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--deficit-good);display:inline-block"></i><span class="faint">200-500</span></span>
+      <span class="row" style="gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:var(--deficit-great);display:inline-block"></i><span class="faint">&gt;500</span></span>
     </div>
   `);
 }
