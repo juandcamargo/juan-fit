@@ -363,7 +363,13 @@ a.link{ color: var(--strength); font-weight:650; text-decoration:none; }
 .food-item{ display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid var(--hairline); }
 .food-item:last-child{ border:none; }
 .macro-chip{ display:flex; gap:8px; font-size:11px; color:var(--ink-faint); margin-top:2px; }
-.chart-wrap{ width:100%; overflow:visible; }
+.chart-wrap{ width:100%; overflow:visible; position:relative; touch-action:pan-y; }
+.spark-endpoints{ display:flex; justify-content:space-between; margin-bottom:6px; }
+.spark-endpoint span{ display:block; font-size:11px; color:var(--ink-faint); }
+.spark-endpoint b{ display:block; font-size:16px; margin-top:1px; }
+.spark-tip{ position:absolute; top:0; transform:translate(-50%,-100%); background:var(--ink); color:var(--surface); font-size:11px; font-weight:700; padding:4px 8px; border-radius:8px; white-space:nowrap; pointer-events:none; opacity:0; transition:opacity .1s; z-index:5; }
+.spark-tip span{ display:block; font-weight:600; opacity:.8; font-size:10px; margin-top:1px; }
+.spark-axis-label{ font-size:9px; fill:var(--ink-faint); }
 .pr-flash{ animation: prFlash 1.2s var(--ease); }
 @keyframes prFlash{ 0%{ background: color-mix(in oklch, var(--gamify) 40%, var(--surface)); } 100%{ background:var(--surface); } }
 .onb-steps{ display:flex; gap:5px; margin-bottom:18px; }
@@ -473,6 +479,7 @@ function toast(msg, opts={}){
 function openSheet(html, {onClose}={}){
   const host = $('#sheet-host');
   host.innerHTML = `<div class="sheet-backdrop" id="curBackdrop"></div><div class="sheet" id="curSheet"><div class="sheet-handle"></div>${html}</div>`;
+  wireSparklines();
   requestAnimationFrame(()=>{ $('#curBackdrop').classList.add('open'); $('#curSheet').classList.add('open'); });
   const close = () => {
     $('#curBackdrop')?.classList.remove('open');
@@ -503,27 +510,159 @@ function runConfirmAction(){
   if(fn) fn();
 }
 
-/* Simple SVG line chart. points: [{x:label,y:num}] */
+/* SVG line chart con eje de referencia, etiquetas "antes/ahora" y tooltip interactivo al tocar/pasar el dedo.
+   points: [{x:label,y:num}] */
+let __sparkSeq = 0;
 function sparkline(points, {w=300,h=110,color='var(--strength)',fill=true, unit=''}={}){
   if(!points.length) return `<div class="empty-state" style="padding:20px"><span class="faint">Aún no hay datos suficientes</span></div>`;
+  const marginLeft = 30;
+  const drawW = w - marginLeft;
   const ys = points.map(p=>p.y);
   let min = Math.min(...ys), max = Math.max(...ys);
   if(min===max){ min -= 1; max += 1; }
   const pad = (max-min)*0.15; min -= pad; max += pad;
-  const stepX = points.length>1 ? w/(points.length-1) : 0;
+  const stepX = points.length>1 ? drawW/(points.length-1) : 0;
   const coords = points.map((p,i)=>{
-    const x = points.length>1 ? i*stepX : w/2;
+    const x = marginLeft + (points.length>1 ? i*stepX : drawW/2);
     const y = h - ((p.y-min)/(max-min))*h;
     return [x,y];
   });
   const path = coords.map((c,i)=> (i===0?'M':'L')+c[0].toFixed(1)+','+c[1].toFixed(1)).join(' ');
-  const areaPath = `${path} L${coords[coords.length-1][0].toFixed(1)},${h} L0,${h} Z`;
-  const last = points[points.length-1];
-  return `<div class="chart-wrap"><svg viewBox="0 0 ${w} ${h+24}" width="100%" height="${h+24}" preserveAspectRatio="none">
-    ${fill?`<path d="${areaPath}" fill="${color}" opacity="0.12"/>`:''}
-    <path d="${path}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    ${coords.map((c,i)=>`<circle cx="${c[0]}" cy="${c[1]}" r="${i===coords.length-1?4:0}" fill="${color}"/>`).join('')}
-  </svg><div class="row between faint" style="margin-top:2px"><span>${points[0].x}</span><span style="color:var(--ink);font-weight:700">${last.y}${unit}</span><span>${last.x}</span></div></div>`;
+  const areaPath = `${path} L${coords[coords.length-1][0].toFixed(1)},${h} L${marginLeft},${h} Z`;
+  const first = points[0], last = points[points.length-1];
+  const delta = round1(last.y-first.y);
+  const deltaLabel = points.length>1 ? (delta>0?`+${delta}`:`${delta}`)+unit : '';
+  const gridYs = [0, h/2, h];
+  const gridLines = gridYs.map(gy=>{
+    const val = round1(max - (gy/h)*(max-min));
+    return `<line x1="${marginLeft}" y1="${gy}" x2="${w}" y2="${gy}" stroke="var(--hairline)" stroke-width="1" stroke-dasharray="3 3"/>
+      <text x="${marginLeft-4}" y="${gy+3}" text-anchor="end" class="spark-axis-label">${val}</text>`;
+  }).join('');
+  const id = 'spk'+(__sparkSeq++);
+  const dataAttr = JSON.stringify({points, coords, w}).replace(/"/g,'&quot;');
+  return `<div class="spark-endpoints">
+      <div class="spark-endpoint"><span>Antes (${first.x})</span><b>${first.y}${unit}</b></div>
+      ${points.length>1?`<div class="spark-endpoint" style="text-align:center"><span>Cambio</span><b>${deltaLabel}</b></div>`:''}
+      <div class="spark-endpoint" style="text-align:right"><span>Ahora (${last.x})</span><b>${last.y}${unit}</b></div>
+    </div>
+    <div class="chart-wrap" id="${id}" data-spark="${dataAttr}" data-unit="${unit}">
+    <div class="spark-tip"></div>
+    <svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none">
+      ${gridLines}
+      ${fill?`<path d="${areaPath}" fill="${color}" opacity="0.12"/>`:''}
+      <path d="${path}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${coords.map((c,i)=>`<circle cx="${c[0]}" cy="${c[1]}" r="${i===coords.length-1?4:0}" fill="${color}"/>`).join('')}
+      <line class="spark-guide" x1="0" y1="0" x2="0" y2="${h}" stroke="var(--ink-faint)" stroke-width="1" opacity="0"/>
+      <circle class="spark-dot" r="4.5" fill="${color}" stroke="var(--surface)" stroke-width="2" opacity="0"/>
+    </svg>
+  </div>`;
+}
+/* Gráfica de barras del balance calórico diario (consumido − quemado), coloreada con el mismo
+   semáforo que el resto de la app, más la línea de promedio de la semana para validar de un vistazo
+   si en promedio hubo déficit/superávit y en qué tramo cayó. days: [{date, balance|null}] */
+function weeklyBalanceChart(days, {w=320, h=130}={}){
+  const marginLeft = 40;
+  const drawW = w - marginLeft;
+  const n = days.length;
+  const vals = days.map(d=>d.balance).filter(v=>v!=null);
+  let min = vals.length ? Math.min(...vals,0) : -100, max = vals.length ? Math.max(...vals,0) : 100;
+  if(min===max){ min-=100; max+=100; }
+  const pad = (max-min)*0.15; min-=pad; max+=pad;
+  const yOf = v => h - ((v-min)/(max-min))*h;
+  const zeroY = yOf(0);
+  const slot = drawW/n;
+  const barW = Math.min(28, slot*0.55);
+  const avg = vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : null;
+  const avgColor = avg!=null ? deficitComplianceColor(avg) : 'var(--surface-3)';
+  const gridYs = [0, h/2, h];
+  const gridLines = gridYs.map(gy=>{
+    const val = Math.round(max-(gy/h)*(max-min));
+    return `<line x1="${marginLeft}" y1="${gy}" x2="${w}" y2="${gy}" stroke="var(--hairline)" stroke-width="1" stroke-dasharray="3 3"/><text x="${marginLeft-4}" y="${gy+3}" text-anchor="end" class="spark-axis-label">${val}</text>`;
+  }).join('');
+  const bars = days.map((d,i)=>{
+    const cx = marginLeft + slot*i + slot/2;
+    if(d.balance==null) return `<rect x="${(cx-barW/2).toFixed(1)}" y="${(zeroY-2).toFixed(1)}" width="${barW}" height="4" rx="2" fill="var(--surface-3)"/>`;
+    const by = yOf(d.balance);
+    const top = Math.min(by, zeroY), barH = Math.max(2, Math.abs(by-zeroY));
+    return `<rect x="${(cx-barW/2).toFixed(1)}" y="${top.toFixed(1)}" width="${barW}" height="${barH.toFixed(1)}" rx="3" fill="${deficitComplianceColor(d.balance)}"/>`;
+  }).join('');
+  const dayLabels = days.map((d,i)=>{
+    const cx = marginLeft + slot*i + slot/2;
+    return `<text x="${cx}" y="${h+14}" text-anchor="middle" class="spark-axis-label">${DOW_NAMES[parseISO(d.date).getDay()].slice(0,1).toUpperCase()}</text>`;
+  }).join('');
+  const id = 'wbar'+(__sparkSeq++);
+  const dataAttr = JSON.stringify({days, marginLeft, slot, w}).replace(/"/g,'&quot;');
+  return `<div class="chart-wrap" id="${id}" data-bars="${dataAttr}">
+    <div class="spark-tip"></div>
+    <svg viewBox="0 0 ${w} ${h+18}" width="100%" height="${h+18}" preserveAspectRatio="none">
+      ${gridLines}
+      <line x1="${marginLeft}" y1="${zeroY}" x2="${w}" y2="${zeroY}" stroke="var(--ink-faint)" stroke-width="1.3"/>
+      ${avg!=null?`<line x1="${marginLeft}" y1="${yOf(avg)}" x2="${w}" y2="${yOf(avg)}" stroke="${avgColor}" stroke-width="1.5" stroke-dasharray="5 3"/>`:''}
+      ${bars}
+      ${dayLabels}
+    </svg>
+  </div>
+  <div class="row between" style="margin-top:6px">
+    <span class="faint" style="font-size:12px">Cada barra: balance del día (consumido − quemado)</span>
+    ${avg!=null?`<b style="font-size:13px;color:${avgColor}">Promedio: ${avg>0?'+':''}${avg} kcal</b>`:''}
+  </div>`;
+}
+/* Activa el tooltip táctil/mouse de cada gráfica (línea o barras) recién insertada en el DOM */
+function wireSparklines(){
+  document.querySelectorAll('.chart-wrap[data-spark]:not([data-wired])').forEach(el=>{
+    el.setAttribute('data-wired','1');
+    let data; try{ data = JSON.parse(el.getAttribute('data-spark')); }catch(e){ return; }
+    const svg = el.querySelector('svg');
+    const guide = el.querySelector('.spark-guide');
+    const dot = el.querySelector('.spark-dot');
+    const tip = el.querySelector('.spark-tip');
+    const unit = el.dataset.unit||'';
+    if(!svg || data.points.length<2) return;
+    const move = (clientX)=>{
+      const rect = svg.getBoundingClientRect();
+      if(rect.width===0) return;
+      const frac = Math.max(0, Math.min(1, (clientX-rect.left)/rect.width));
+      const idx = Math.round(frac*(data.points.length-1));
+      const pt = data.points[idx], c = data.coords[idx];
+      guide.setAttribute('x1', c[0]); guide.setAttribute('x2', c[0]); guide.style.opacity = 1;
+      dot.setAttribute('cx', c[0]); dot.setAttribute('cy', c[1]); dot.style.opacity = 1;
+      const pctX = c[0]/data.w*100;
+      tip.style.left = pctX+'%';
+      tip.style.opacity = 1;
+      tip.innerHTML = `${pt.y}${unit}<span>${pt.x}</span>`;
+    };
+    const hide = ()=>{ guide.style.opacity=0; dot.style.opacity=0; tip.style.opacity=0; };
+    el.addEventListener('pointermove', e=>move(e.clientX));
+    el.addEventListener('pointerdown', e=>move(e.clientX));
+    el.addEventListener('pointerleave', hide);
+    el.addEventListener('touchmove', e=>{ if(e.touches[0]) move(e.touches[0].clientX); }, {passive:true});
+    el.addEventListener('touchend', hide);
+  });
+  document.querySelectorAll('.chart-wrap[data-bars]:not([data-wired])').forEach(el=>{
+    el.setAttribute('data-wired','1');
+    let data; try{ data = JSON.parse(el.getAttribute('data-bars')); }catch(e){ return; }
+    const svg = el.querySelector('svg');
+    const tip = el.querySelector('.spark-tip');
+    if(!svg) return;
+    const move = (clientX)=>{
+      const rect = svg.getBoundingClientRect();
+      if(rect.width===0) return;
+      const frac = Math.max(0, Math.min(0.999, (clientX-rect.left)/rect.width));
+      const idx = Math.min(data.days.length-1, Math.floor(frac*data.days.length));
+      const d = data.days[idx];
+      const cx = data.marginLeft + data.slot*idx + data.slot/2;
+      const pctX = cx/data.w*100;
+      tip.style.left = pctX+'%';
+      tip.style.opacity = 1;
+      tip.innerHTML = d.balance==null ? `Sin datos<span>${fmtDateShort(d.date)}</span>` : `${d.balance>0?'+':''}${d.balance} kcal<span>${fmtDateShort(d.date)}</span>`;
+    };
+    const hide = ()=>{ tip.style.opacity=0; };
+    el.addEventListener('pointermove', e=>move(e.clientX));
+    el.addEventListener('pointerdown', e=>move(e.clientX));
+    el.addEventListener('pointerleave', hide);
+    el.addEventListener('touchmove', e=>{ if(e.touches[0]) move(e.touches[0].clientX); }, {passive:true});
+    el.addEventListener('touchend', hide);
+  });
 }
 
 let __ringSeq = 0;
@@ -975,15 +1114,16 @@ const EXTRA_CATEGORIES = [
   {id:'personalizado', name:'Crear alimento personalizado', group:'antojo', icon:'pencil'},
 ];
 function extraCategory(id){ return EXTRA_CATEGORIES.find(c=>c.id===id); }
+function extraBankFor(categoryId){ return [...(STATE.customExtraItems[categoryId]||[]), ...(EXTRA_ITEMS[categoryId]||[])]; }
 
 /* Banco de productos frecuentes por categoría. sugar = azúcares totales, addedSugar = azúcares libres/añadidos, sat = grasa saturada, sodium mg, fiber g. */
 const EXTRA_ITEMS = {
   dulce: [
+    {name:'Bocadillo veleño', kcal:130, carbs:33, sugar:30, addedSugar:28, fat:0, sat:0, protein:0, sodium:5, fiber:1},
     {name:'Porción de torta o postre', kcal:350, carbs:45, sugar:30, addedSugar:28, fat:17, sat:9, protein:4, sodium:220, fiber:1},
     {name:'Donut', kcal:260, carbs:31, sugar:15, addedSugar:15, fat:14, sat:6, protein:3, sodium:210, fiber:1},
     {name:'Flan o postre de leche', kcal:220, carbs:33, sugar:30, addedSugar:24, fat:7, sat:3.5, protein:5, sodium:120, fiber:0},
     {name:'Brownie', kcal:280, carbs:34, sugar:26, addedSugar:24, fat:15, sat:7, protein:3, sodium:150, fiber:1.5},
-    {name:'Bocadillo veleño', kcal:130, carbs:33, sugar:30, addedSugar:28, fat:0, sat:0, protein:0, sodium:5, fiber:1},
   ],
   bebida_azucarada: [
     {name:'Gaseosa (lata 350 ml)', kcal:140, carbs:39, sugar:39, addedSugar:39, fat:0, sat:0, protein:0, sodium:15, fiber:0, caffeine:35},
@@ -1268,6 +1408,7 @@ function defaultState(){
     extraSessions: {}, // date -> [{id, type, minutes, kcal}] sesiones adicionales opcionales, solo informativas
     dailyBalanceLog: {}, // date -> {consumed, tdee, meta, balance, macroOver:{kcal,p,c,f}} — historial de balance calórico y excesos de macros
     recipes: [], // recetas propias guardadas: [{id, name, slot:'desayuno'|'almuerzo'|'cena', kcal, p, c, f}]
+    customExtraItems: {}, // categoryId -> [{name, kcal, carbs, sugar, addedSugar, fat, sat, protein, sodium, fiber}] — alimentos personalizados guardados por categoría
   };
 }
 let STATE = loadState();
@@ -2153,7 +2294,7 @@ function weekDates(anchorISO){
 }
 /* Promedio semanal: un solo día por encima de la meta no es un fracaso — lo que importa es la tendencia */
 function weeklyNutritionSummary(anchorISO=todayISO()){
-  const dates = weekDates(anchorISO);
+  const dates = last7Days(anchorISO);
   const targets = currentMacros();
   const tdee = latestBodyLog()?.tdee || targets.kcal;
   let totalKcal=0, totalProtein=0, daysWithData=0, daysOverGoal=0, daysUnderGoal=0;
@@ -2414,50 +2555,12 @@ function muscleLoadThisWeek(){
   return load;
 }
 
-function renderHoy(){
+/* Tarjeta de la sesión de entreno de hoy — se muestra tanto en Hoy como en la parte de arriba de Entreno. */
+function buildTrainingSessionCard(){
   const iso = todayISO();
   const sched = scheduleForToday();
-  const sleepEntry = STATE.sleep[iso] || STATE.sleep[addDays(iso,-1)];
-  const rscore = recoveryScore(sleepEntry);
-  const advice = recoveryAdvice(rscore, sleepEntry? sleepEntry.totalMin/60 : null);
-  const targets = currentMacros();
-  const nut = STATE.nutrition[iso] || {meals:[], supplements:{}};
-  const mealSums = (nut.meals||[]).reduce((a,m)=>({kcal:a.kcal+m.kcal,p:a.p+m.p,c:a.c+m.c,f:a.f+m.f}),{kcal:0,p:0,c:0,f:0});
-  const extraSumsToday = extrasForDate(iso).reduce((a,e)=>({kcal:a.kcal+(e.kcal||0),p:a.p+(e.protein||0),c:a.c+(e.carbs||0),f:a.f+(e.fat||0)}),{kcal:0,p:0,c:0,f:0});
-  const sums = {kcal:mealSums.kcal+extraSumsToday.kcal, p:mealSums.p+extraSumsToday.p, c:mealSums.c+extraSumsToday.c, f:mealSums.f+extraSumsToday.f};
-  const g = STATE.gamification;
-  const lvl = levelFromXP(g.xp||0);
-  const holiday = isHoliday(iso);
-
-  const cb = todaysCalorieBalance();
-  recordDailyBalance(cb, sums);
-  const bt = cb.burnToday;
-  const isRestDay = bt.dayType==='rest-suggested';
-  const balanceLabel = cb.balanceExpected>0 ? `+${cb.balanceExpected}` : `${cb.balanceExpected}`;
-  const balanceColor = balanceStatusColor(cb.balanceExpected, isRestDay);
-  const balanceWord = cb.balanceExpected>0 ? 'superávit esperado' : 'déficit esperado';
-  const trainingLabel = bt.dayType==='cardio' ? 'cardio' : (bt.dayType==='rest-suggested' ? 'descanso' : 'fuerza');
-  // Balance ACTUAL (datos parciales, solo informativo — nunca es el resultado del día)
-  const actualBalance = Math.round(cb.consumed - bt.soFar);
-  const actualLabel = actualBalance>0 ? `+${actualBalance}` : `${actualBalance}`;
-  const actualWord = actualBalance>0 ? 'superávit actual' : 'déficit actual';
+  const bt = todaysBurnBreakdown();
   const strengthOnlyKcal = bt.trainingKcalPlan - bt.cardioKcal; // porción solo de fuerza, sin el cardio post-entreno
-  const trainingBadge = bt.source==='descanso'
-    ? `Descanso hoy: 0 kcal de entrenamiento`
-    : (bt.dayType==='cardio' && bt.source==='completado')
-      ? `Sesión de cardio completada: ~${bt.trainingKcalPlan} kcal${bt.cardioMinutes?` (${bt.cardioMinutes} min)`:''}`
-      : (bt.cardioKcal>0
-        ? `${bt.source==='completado'?'Entrenamiento completado':'Entrenamiento programado'} (${trainingLabel}): ~${strengthOnlyKcal} kcal + cardio post-entreno ~${bt.cardioKcal} kcal (${bt.cardioMinutes} min) = ~${bt.trainingKcalPlan} kcal en total`
-        : `${bt.source==='completado'?'Entrenamiento completado':'Entrenamiento programado'} (${trainingLabel}): ~${bt.trainingKcalPlan} kcal`);
-  const todaysExtraSessions = extraSessionsForDate(iso);
-  const extraSessionsHtml = todaysExtraSessions.map(s=>{
-    const typeName = EXTRA_SESSION_TYPES.find(t=>t.id===s.type)?.name || s.type;
-    return `<div class="row between" style="margin-top:8px;padding:10px 12px;background:var(--surface-2);border-radius:12px">
-      <span class="faint">${icon('zap',13,{valign:'-2px'})} Sesión extra: ${typeName} — ${s.minutes} min</span>
-      <b style="font-size:13px">~${s.kcal} kcal</b>
-    </div>`;
-  }).join('');
-
   let planCard;
   if(sched.type==='rest-suggested'){
     const isManualRest = sched.reason==='Marcaste hoy como descanso';
@@ -2526,6 +2629,54 @@ function renderHoy(){
       :`<button class="btn ghost block" style="margin-top:8px;color:var(--danger)" data-action="delete-workout-log" data-date="${iso}">Elegí mal — borrar y volver a elegir</button>`}
     </div>`;
   }
+  return planCard;
+}
+
+function renderHoy(){
+  const iso = todayISO();
+  const sched = scheduleForToday();
+  const sleepEntry = STATE.sleep[iso] || STATE.sleep[addDays(iso,-1)];
+  const rscore = recoveryScore(sleepEntry);
+  const advice = recoveryAdvice(rscore, sleepEntry? sleepEntry.totalMin/60 : null);
+  const targets = currentMacros();
+  const nut = STATE.nutrition[iso] || {meals:[], supplements:{}};
+  const mealSums = (nut.meals||[]).reduce((a,m)=>({kcal:a.kcal+m.kcal,p:a.p+m.p,c:a.c+m.c,f:a.f+m.f}),{kcal:0,p:0,c:0,f:0});
+  const extraSumsToday = extrasForDate(iso).reduce((a,e)=>({kcal:a.kcal+(e.kcal||0),p:a.p+(e.protein||0),c:a.c+(e.carbs||0),f:a.f+(e.fat||0)}),{kcal:0,p:0,c:0,f:0});
+  const sums = {kcal:mealSums.kcal+extraSumsToday.kcal, p:mealSums.p+extraSumsToday.p, c:mealSums.c+extraSumsToday.c, f:mealSums.f+extraSumsToday.f};
+  const g = STATE.gamification;
+  const lvl = levelFromXP(g.xp||0);
+  const holiday = isHoliday(iso);
+
+  const cb = todaysCalorieBalance();
+  recordDailyBalance(cb, sums);
+  const bt = cb.burnToday;
+  const isRestDay = bt.dayType==='rest-suggested';
+  const balanceLabel = cb.balanceExpected>0 ? `+${cb.balanceExpected}` : `${cb.balanceExpected}`;
+  const balanceColor = balanceStatusColor(cb.balanceExpected, isRestDay);
+  const balanceWord = cb.balanceExpected>0 ? 'superávit esperado' : 'déficit esperado';
+  const trainingLabel = bt.dayType==='cardio' ? 'cardio' : (bt.dayType==='rest-suggested' ? 'descanso' : 'fuerza');
+  // Balance ACTUAL (datos parciales, solo informativo — nunca es el resultado del día)
+  const actualBalance = Math.round(cb.consumed - bt.soFar);
+  const actualLabel = actualBalance>0 ? `+${actualBalance}` : `${actualBalance}`;
+  const actualWord = actualBalance>0 ? 'superávit actual' : 'déficit actual';
+  const strengthOnlyKcal = bt.trainingKcalPlan - bt.cardioKcal; // porción solo de fuerza, sin el cardio post-entreno
+  const trainingBadge = bt.source==='descanso'
+    ? `Descanso hoy: 0 kcal de entrenamiento`
+    : (bt.dayType==='cardio' && bt.source==='completado')
+      ? `Sesión de cardio completada: ~${bt.trainingKcalPlan} kcal${bt.cardioMinutes?` (${bt.cardioMinutes} min)`:''}`
+      : (bt.cardioKcal>0
+        ? `${bt.source==='completado'?'Entrenamiento completado':'Entrenamiento programado'} (${trainingLabel}): ~${strengthOnlyKcal} kcal + cardio post-entreno ~${bt.cardioKcal} kcal (${bt.cardioMinutes} min) = ~${bt.trainingKcalPlan} kcal en total`
+        : `${bt.source==='completado'?'Entrenamiento completado':'Entrenamiento programado'} (${trainingLabel}): ~${bt.trainingKcalPlan} kcal`);
+  const todaysExtraSessions = extraSessionsForDate(iso);
+  const extraSessionsHtml = todaysExtraSessions.map(s=>{
+    const typeName = EXTRA_SESSION_TYPES.find(t=>t.id===s.type)?.name || s.type;
+    return `<div class="row between" style="margin-top:8px;padding:10px 12px;background:var(--surface-2);border-radius:12px">
+      <span class="faint">${icon('zap',13,{valign:'-2px'})} Sesión extra: ${typeName} — ${s.minutes} min</span>
+      <b style="font-size:13px">~${s.kcal} kcal</b>
+    </div>`;
+  }).join('');
+
+  const planCard = buildTrainingSessionCard();
 
   const rTone = {good:'success', ok:'nutrition', low:'gamify', verylow:'danger', neutral:'sleep'}[advice.tone];
   const sleepGoal = STATE.profile.sleepGoalHours || 7;
@@ -2536,10 +2687,6 @@ function renderHoy(){
       ${ring(sleepEntry?clamp(sleepHours/sleepGoal,0,1):0, {size:128, stroke:16, color:'var(--sleep)', label: sleepEntry?sleepHours.toFixed(1)+'h':'—', sub:`/ ${sleepGoal}h meta`})}
     </div>
     <p style="font-size:13.5px;margin-top:12px;line-height:1.5" class="muted">${advice.text}</p>
-    ${sleepEntry?`<div class="row" style="gap:16px;margin-top:10px;justify-content:center">
-      <div class="stat-mini"><b>${sleepEntry.totalMin?Math.round((sleepEntry.deep||0)/sleepEntry.totalMin*100):0}%</b><span>profundo</span></div>
-      <div class="stat-mini"><b>${sleepEntry.totalMin?Math.round((sleepEntry.rem||0)/sleepEntry.totalMin*100):0}%</b><span>REM</span></div>
-    </div>`:''}
     <button class="btn sleep block" style="margin-top:12px" data-action="open-sleep-log" data-date="${iso}">${sleepEntry?'Editar registro de sueño':'Registrar sueño de anoche'}</button>
   </div>`;
 
@@ -2647,15 +2794,12 @@ function renderEntrenoWeek(){
   $('#view-root').innerHTML = `<div class="view">
     <h2 class="section-title">Entreno</h2>
     <div class="week-strip">${chips}</div>
-    <div class="card" style="margin-top:4px">
-      <div class="row between"><b style="font-size:15px">Volumen (últimos 7 días) por grupo</b><span class="faint">series</span></div>
-      <p class="faint" style="margin:6px 0 10px">Así evitamos sobreentrenar un músculo — verde es sano, rojo indica que ya vas alto.</p>
-      ${volRows}
-    </div>
+    <h3 class="section-title" style="font-size:17px;margin-top:16px">Sesión de hoy</h3>
+    ${buildTrainingSessionCard()}
     <h3 class="section-title" style="font-size:17px;margin-top:20px">Tu split (7 días)</h3>
     ${[1,2,3,4,5,6].map(day=>{
       const exs = exercisesForDay(day);
-      return `<div class="card tight" role="button" tabindex="0" data-action="go-workout" data-day="${day}" style="cursor:pointer; ${day===upcoming?'border-color:var(--strength)':''}">
+      return `<div class="card tight" role="button" tabindex="0" data-action="view-split-day" data-day="${day}" style="cursor:pointer; ${day===upcoming?'border-color:var(--strength)':''}">
         <div class="row between">
           <div><div class="row" style="gap:8px"><b style="font-size:15px">Día ${day} · ${DAY_ORDER[day]}</b>${day===upcoming?'<span class="tag strength">Siguiente</span>':''}</div><div class="faint" style="margin-top:2px">${exs.length} ejercicios</div></div>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:var(--ink-faint)"><path d="M9 6l6 6-6 6"/></svg>
@@ -2671,7 +2815,33 @@ function renderEntrenoWeek(){
         </div>
       </div>`;
     })()}
+    <div class="card" style="margin-top:16px">
+      <div class="row between"><b style="font-size:15px">Volumen (últimos 7 días) por grupo</b><span class="faint">series</span></div>
+      <p class="faint" style="margin:6px 0 10px">Así evitamos sobreentrenar un músculo — verde es sano, rojo indica que ya vas alto.</p>
+      ${volRows}
+    </div>
   </div>`;
+}
+function openSplitDayDetail(day){
+  const exs = exercisesForDay(day);
+  const rows = exs.map(ex=>{
+    const best = bestSetForExercise(ex.id);
+    return `<div class="food-item">
+      <div class="row" style="gap:10px"><div class="ex-thumb" style="width:38px;height:38px">${exIllustration(ex.id)}</div>
+        <div><b style="font-size:13.5px">${ex.name}</b><div class="faint">${ex.sets}x${ex.reps}</div></div>
+      </div>
+      ${best?`<span class="tag gamify">${icon('trophy',12,{valign:'-2px'})} ${best.weight}kg</span>`:`<span class="faint" style="font-size:12px">Sin registros</span>`}
+    </div>`;
+  }).join('');
+  openSheet(`
+    <h3>Día ${day} · ${DAY_ORDER[day]}</h3>
+    ${muscleMap([...new Set(exs.flatMap(e=>e.muscles))])}
+    <div style="margin-top:4px">${rows}</div>
+    <div class="row" style="gap:10px;margin-top:16px">
+      <button class="btn primary" style="flex:1" data-action="go-workout" data-day="${day}" data-mode="full">Empezar completo</button>
+      <button class="btn ghost" style="flex:1" data-action="go-workout" data-day="${day}" data-mode="short">Corto</button>
+    </div>
+  `);
 }
 function openRestDayInfo(){
   const restMacros = restDayMacros();
@@ -2697,6 +2867,7 @@ function openRestDayInfo(){
 
 let SESSION = null; // active workout session object while training
 function startSession(day, sessionMode='full'){
+  closeSheet();
   const iso = todayISO();
   let existing = STATE.workoutLogs.find(w=>w.date===iso);
   if(!existing){
@@ -2781,11 +2952,19 @@ function phaseChecklist({title, sub, items, checkedMap, toggleAction, ctaLabel, 
 }
 function renderWarmupPhase(){
   const group = dayMuscleGroup(SESSION.day);
-  phaseChecklist({
-    title:'Calentamiento', sub:'Prepara articulaciones y sube la temperatura corporal antes de cargar peso.',
-    items: WARMUP_CONTENT[group], checkedMap: SESSION.warmupChecked, toggleAction:'toggle-warmup-item',
-    ctaLabel:'Empezar ejercicios', ctaAction:'start-main',
-  });
+  const items = WARMUP_CONTENT[group];
+  $('#view-root').innerHTML = `<div class="view">
+    <div class="row between" style="margin-bottom:6px">
+      <button class="icon-btn" data-action="exit-session"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <b style="font-size:15px">Calentamiento</b>
+      <span class="faint">~5 min</span>
+    </div>
+    <div class="card">
+      <p class="faint" style="margin-bottom:12px">Prepara articulaciones y sube la temperatura corporal antes de cargar peso.</p>
+      <ul style="margin:0 0 14px;padding-left:18px;font-size:14px;line-height:1.8">${items.map(t=>`<li>${t}</li>`).join('')}</ul>
+      <button class="btn primary block" data-action="start-main">Calentamiento hecho — empezar ejercicios</button>
+    </div>
+  </div>`;
 }
 function renderCooldownPhase(){
   const group = dayMuscleGroup(SESSION.day);
@@ -2814,11 +2993,6 @@ function renderPostCardioPhase(){
       <button class="btn ghost block" style="margin-top:8px" data-action="finish-session">Saltar por hoy</button>
     </div>
   </div>`;
-}
-function toggleWarmupItem(idx){
-  if(!SESSION.warmupChecked) SESSION.warmupChecked = {};
-  SESSION.warmupChecked[idx] = !SESSION.warmupChecked[idx];
-  saveState(); render();
 }
 function toggleCooldownItem(idx){
   if(!SESSION.cooldownChecked) SESSION.cooldownChecked = {};
@@ -3128,7 +3302,7 @@ function renderNutricion(){
     return `<div style="text-align:center">${ring(sums[k]/targets[k],{size:104,stroke:10,color:colors[k],label:Math.round(sums[k])+unit,sub:'/'+targets[k]+unit,overLabel:overAmt?`+${overAmt}${unit}`:''})}<div class="faint" style="margin-top:6px">${names[k]}</div></div>`;
   }).join('');
 
-  const mealsHtml = nut.meals.length ? nut.meals.map(m=>{
+  const mealRows = nut.meals.map(m=>{
     const iconName = m.isSupplement ? 'pill' : m.isPlan ? 'check-circle' : 'utensils';
     const thumbStyle = m.isSupplement ? 'background:color-mix(in oklch, var(--gamify) 18%, var(--surface));color:var(--gamify-ink)' : '';
     return `
@@ -3139,7 +3313,7 @@ function renderNutricion(){
       </div>
       <button class="icon-btn" data-action="delete-meal" data-mealid="${m.id}" style="width:30px;height:30px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13h10l1-13"/></svg></button>
     </div>`;
-  }).join('') : `<div class="empty-state" style="padding:20px"><span>Aún no registras comidas hoy</span></div>`;
+  }).join('');
 
   const suppHtml = SUPPLEMENTS.map(s=>`
     <label class="chk">
@@ -3148,7 +3322,7 @@ function renderNutricion(){
       <span style="flex:1">${icon(s.icon,15,{valign:'-3px'})} ${s.name} <span class="faint">(${s.dose})</span></span>
     </label>`).join('');
 
-  const extrasHtml = todayExtras.length ? todayExtras.map(e=>{
+  const extraRows = todayExtras.map(e=>{
     const cat = extraCategory(e.category);
     const isAlcohol = e.group==='alcohol';
     return `<div class="food-item">
@@ -3158,7 +3332,8 @@ function renderNutricion(){
       </div>
       <button class="icon-btn" data-action="delete-extra" data-extraid="${e.id}" style="width:30px;height:30px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13h10l1-13"/></svg></button>
     </div>`;
-  }).join('') : `<p class="faint" style="padding:6px 0">Sin registros hoy.</p>`;
+  }).join('');
+  const hoyComisteHtml = (mealRows+extraRows) || `<div class="empty-state" style="padding:20px"><span>Aún no registras comidas hoy</span></div>`;
 
   const waterGlasses = STATE.water[iso]||0;
   const alcoholToday = todayExtras.filter(e=>e.group==='alcohol');
@@ -3236,17 +3411,23 @@ function renderNutricion(){
     ${recetasCard}
 
     <div class="card">
-      <b style="font-size:15px">Registrar comida</b>
+      <div class="row between"><b style="font-size:15px">Registrar comida</b><a class="link faint" data-action="open-extras-trends">Tendencias de antojos</a></div>
       <div class="row" style="gap:8px;margin-top:10px">
-        <button class="btn nutrition" style="flex:1" data-action="open-food-search">${icon('search',15,{valign:'-3px'})} Buscar</button>
-        <button class="btn ghost" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
+        <button class="btn nutrition" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
+        <button class="btn ghost" style="flex:1" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Ingresar manualmente</button>
       </div>
-      <button class="btn ghost block" style="margin-top:8px" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Ingresar manualmente</button>
+      <button class="btn ghost block" style="margin-top:8px" data-action="open-extras-add">${icon('target',15,{valign:'-3px'})} Antojo, snack o alcohol</button>
+      ${todayExtras.length?`<div class="grid3" style="margin-top:12px">
+        <div class="stat-mini"><b>${extraSums.kcal||0}</b><span>kcal extras (${extrasPct}%)</span></div>
+        <div class="stat-mini"><b>${todayExtras.length}</b><span>registros hoy</span></div>
+        <div class="stat-mini"><b>${alcoholToday.length}</b><span>bebidas alcohol.</span></div>
+      </div>`:''}
+      <a class="link faint" data-action="open-extras-goals" style="display:block;margin-top:10px">Mis metas de antojos</a>
     </div>
 
     <div class="card flush">
       <div style="padding:16px 16px 4px"><b style="font-size:15px">Hoy comiste</b></div>
-      ${mealsHtml}
+      ${hoyComisteHtml}
     </div>
 
     <div class="card">
@@ -3257,23 +3438,6 @@ function renderNutricion(){
     <div class="card">
       <div class="row between"><b style="font-size:15px">${icon('droplet',15,{valign:'-3px'})} Hidratación</b><span class="faint">${waterGlasses} / ${STATE.profile.waterGoalGlasses||8} vasos hoy</span></div>
       <button class="btn sleep block" style="margin-top:10px" data-action="log-water">+ Agregar vaso de agua</button>
-    </div>
-
-    <div class="card">
-      <div class="row between"><b style="font-size:15px">Antojos y extras</b><a class="link faint" data-action="open-extras-trends">Ver tendencias</a></div>
-      <p class="faint" style="margin-top:4px">Registra esos consumos que también forman parte de tu alimentación. Entiende su impacto sin culpa y detecta patrones que te ayuden a tomar mejores decisiones.</p>
-      <button class="btn ghost block" style="margin-top:10px" data-action="open-extras-add">${icon('target',15,{valign:'-3px'})} Agregar</button>
-      ${todayExtras.length?`<div class="grid3" style="margin-top:12px">
-        <div class="stat-mini"><b>${extraSums.kcal||0}</b><span>kcal extras (${extrasPct}%)</span></div>
-        <div class="stat-mini"><b>${todayExtras.length}</b><span>registros hoy</span></div>
-        <div class="stat-mini"><b>${alcoholToday.length}</b><span>bebidas alcohol.</span></div>
-      </div>`:''}
-      <div class="divider"></div>
-      ${extrasHtml}
-      <div class="row between" style="margin-top:10px">
-        <a class="link faint" data-action="open-extras-goals">Mis metas</a>
-        <span class="faint">Impacto ya incluido en tus anillos de arriba</span>
-      </div>
     </div>
 
     <div class="card">
@@ -3553,10 +3717,9 @@ function openLogMealForDay(date){
     <h3>Registrar comida de ${fmtDateShort(date)}</h3>
     <p class="faint">Se guardará como consumo de ese día, no de hoy.</p>
     <div class="row" style="gap:10px;margin-top:14px">
-      <button class="btn nutrition" style="flex:1" data-action="open-food-search">${icon('search',15,{valign:'-3px'})} Buscar</button>
-      <button class="btn ghost" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
+      <button class="btn nutrition" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
+      <button class="btn ghost" style="flex:1" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Ingresar manualmente</button>
     </div>
-    <button class="btn ghost block" style="margin-top:8px" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Ingresar manualmente</button>
   `);
 }
 
@@ -3654,8 +3817,8 @@ function openPlanAlternative(slotId){
     <p class="faint">Regístralo y lo diferenciamos de tu plan habitual.</p>
     ${savedForSlot.length ? `<button class="btn nutrition block" style="margin-top:10px" data-action="open-recipe-picker" data-slot="${slotId}">${icon('utensils',15,{valign:'-3px'})} Elegir receta guardada</button>` : ''}
     <div class="row" style="gap:8px;margin-top:10px">
-      <button class="btn ${savedForSlot.length?'ghost':'nutrition'}" style="flex:1" data-action="open-food-search">${icon('search',15,{valign:'-3px'})} Buscar alimento</button>
-      <button class="btn ghost" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
+      <button class="btn ${savedForSlot.length?'ghost':'nutrition'}" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
+      <button class="btn ghost" style="flex:1" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Ingresar manualmente</button>
     </div>
   `);
 }
@@ -3777,8 +3940,71 @@ function openExtrasAdd(){
   `);
 }
 function openExtraCategory(catId){
+  if(catId==='personalizado') return openCustomFoodForm();
   if(catId==='alcohol') return openAlcoholForm();
   return openExtraForm(catId);
+}
+
+/* ---------- Crear alimento personalizado: se guarda en el banco de su categoría para uso futuro ---------- */
+function openCustomFoodForm(){
+  const cats = EXTRA_CATEGORIES.filter(c=>c.id!=='alcohol' && c.id!=='personalizado');
+  openSheet(`
+    <div class="row" style="gap:10px;margin-bottom:2px">
+      <button class="icon-btn" style="width:32px;height:32px" data-action="open-extras-add"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <h3 style="margin:0">Crear alimento personalizado</h3>
+    </div>
+    <p class="faint">Lo guardamos en su categoría para que la próxima vez lo tengas listo para elegir, sin volver a escribirlo.</p>
+    <label class="field"><span>Nombre</span><input type="text" id="cfName" placeholder="Ej: Torta de la abuela"></label>
+    <label class="field"><span>Categoría</span>
+      <select id="cfCategory">${cats.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+    </label>
+    <div class="grid3">
+      <label class="field"><span>Kcal</span><input type="number" id="cfKcal"></label>
+      <label class="field"><span>Carbos (g)</span><input type="number" id="cfCarbs"></label>
+      <label class="field"><span>Azúcares (g)</span><input type="number" id="cfSugar"></label>
+    </div>
+    <div class="grid3">
+      <label class="field"><span>Az. añadidos (g)</span><input type="number" id="cfAddedSugar"></label>
+      <label class="field"><span>Grasa (g)</span><input type="number" id="cfFat"></label>
+      <label class="field"><span>Grasa sat. (g)</span><input type="number" id="cfSat"></label>
+    </div>
+    <div class="grid3">
+      <label class="field"><span>Proteína (g)</span><input type="number" id="cfProtein"></label>
+      <label class="field"><span>Sodio (mg)</span><input type="number" id="cfSodium"></label>
+      <label class="field"><span>Fibra (g)</span><input type="number" id="cfFiber"></label>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <label class="field"><span>Fecha</span><input type="date" id="cfDate" value="${todayISO()}"></label>
+      <label class="field"><span>Hora</span><input type="time" id="cfTime" value="${nowHHMM()}"></label>
+    </div>
+    <button class="btn primary block" style="margin-top:6px" data-action="save-custom-food">Guardar y registrar hoy</button>
+  `);
+}
+function saveCustomFood(){
+  const name = $('#cfName').value.trim();
+  const categoryId = $('#cfCategory').value;
+  const kcal = numOrNull('cfKcal');
+  if(!name){ toast('Ponle un nombre al alimento', {icon:'alert-triangle'}); return; }
+  if(!kcal){ toast('Ingresa al menos las kcal', {icon:'alert-triangle'}); return; }
+  const item = {
+    name, kcal, carbs:numOrNull('cfCarbs'), sugar:numOrNull('cfSugar'), addedSugar:numOrNull('cfAddedSugar'),
+    fat:numOrNull('cfFat'), sat:numOrNull('cfSat'), protein:numOrNull('cfProtein'), sodium:numOrNull('cfSodium'), fiber:numOrNull('cfFiber'),
+  };
+  if(!STATE.customExtraItems[categoryId]) STATE.customExtraItems[categoryId] = [];
+  STATE.customExtraItems[categoryId].unshift(item);
+  const entry = {
+    id: uid(), date: $('#cfDate').value||todayISO(), time: $('#cfTime').value||nowHHMM(),
+    group:'antojo', category: categoryId, name,
+    portionLabel: null, isEstimate: false,
+    kcal: item.kcal, carbs: item.carbs, sugar: item.sugar, addedSugar: item.addedSugar,
+    fat: item.fat, sat: item.sat, protein: item.protein, sodium: item.sodium, fiber: item.fiber,
+    favorite: false, photo: null,
+  };
+  STATE.extras.push(entry);
+  saveState(); touchStreak(todayISO());
+  closeSheet();
+  toast('Alimento guardado y registrado', {icon:'check-circle'});
+  render();
 }
 
 /* ---------- Paso 2a: formulario de antojo (no alcohol) ---------- */
@@ -3807,7 +4033,7 @@ function updateExtraPreview(){
 }
 function openExtraForm(categoryId){
   const cat = extraCategory(categoryId);
-  const bank = EXTRA_ITEMS[categoryId] || [];
+  const bank = extraBankFor(categoryId);
   const recent = recentExtraNames(categoryId);
   const favs = favoriteExtras(categoryId);
   window.__extraFormState = { categoryId, selected:null, portionMult:1, portionLabel:null, photo:null };
@@ -4232,11 +4458,14 @@ function deleteExtra(id){
 }
 function logWater(){
   const iso = todayISO();
+  const goal = STATE.profile.waterGoalGlasses||8;
   STATE.water[iso] = (STATE.water[iso]||0)+1;
+  const count = STATE.water[iso];
   saveState();
   touchStreak(iso);
   checkBadges();
-  toast('Agregaste agua a tu registro de hidratación. Esto apoya tu hidratación, pero no elimina el consumo anterior.', {icon:'droplet', duration:3400});
+  const msg = count>=goal ? `¡Llegaste a tu meta de hidratación hoy! ${count}/${goal} vasos.` : `Vas acercándote a tu meta — ${count}/${goal} vasos hoy.`;
+  toast(msg, {icon:'droplet'});
   render();
 }
 
@@ -4473,13 +4702,16 @@ function renderProgreso(){
   const sleepPts = sleepDates.map(d=>({x:fmtDateShort(d), y:round1(STATE.sleep[d].totalMin/60)}));
   const unlockedBadges = STATE.gamification.badges;
   const week = weeklyNutritionSummary();
+  const last7Balance = last7Days().map(d=>({date:d, balance: dayGoalStatus(d).balance}));
   const weekCard = `<div class="card">
-    <b style="font-size:15px">Promedio semanal (lunes-domingo)</b>
+    <b style="font-size:15px">Promedio semanal (últimos 7 días)</b>
     <div class="grid3" style="margin-top:12px">
       <div class="stat-mini"><b>${week.totalKcal}</b><span>consumido</span></div>
       <div class="stat-mini"><b>${week.avgKcal}</b><span>promedio/día</span></div>
       <div class="stat-mini"><b>${week.avgProtein}g</b><span>proteína/día</span></div>
     </div>
+    <div class="divider" style="margin:14px 0"></div>
+    ${weeklyBalanceChart(last7Balance)}
     <p class="faint" style="margin-top:10px">Meta semanal: ${week.weeklyGoal} kcal · Mantenimiento semanal: ${week.weeklyMaintenance} kcal</p>
     <p style="font-size:13px;margin-top:6px;color:var(--ink-muted)">${week.diffVsWeeklyGoal>=0?`+${week.diffVsWeeklyGoal}`:week.diffVsWeeklyGoal} kcal frente a la meta semanal · ${week.diffVsWeeklyMaintenance>=0?`+${week.diffVsWeeklyMaintenance}`:week.diffVsWeeklyMaintenance} kcal frente al mantenimiento semanal.</p>
     <p class="faint" style="margin-top:6px">${week.daysWithData} días con registro · ${week.daysOverGoal} por encima de la meta · ${week.daysUnderGoal} en o por debajo</p>
@@ -4661,36 +4893,23 @@ function deleteWeighIn(date){
 }
 
 function openSleepLog(date){
-  const s = STATE.sleep[date] || {totalMin:0, rem:0, light:0, deep:0, awake:0};
+  const s = STATE.sleep[date] || {totalMin:0};
   const hm = (mins)=>({h: Math.floor((mins||0)/60), m: (mins||0)%60});
-  const pairField = (label, idPrefix, mins) => {
-    const v = hm(mins);
-    return `<div style="margin-top:12px;margin-bottom:4px;font-size:13px;font-weight:650">${label}</div>
-    <div class="grid2">
-      <label class="field"><span>Horas</span><input type="number" id="${idPrefix}H" value="${v.h}" min="0"></label>
-      <label class="field"><span>Minutos</span><input type="number" id="${idPrefix}M" value="${v.m}" min="0" max="59"></label>
-    </div>`;
-  };
+  const v = hm(s.totalMin);
   openSheet(`
     <h3>Sueño de ${fmtDateShort(date)}</h3>
-    <p class="faint">Con un bebé recién nacido el sueño no es corrido — por eso solo pedimos el total, como lo agrupa tu Apple Watch, sin horas de acostarte o despertar.</p>
-    ${pairField('Tiempo total dormido', 'sTotal', s.totalMin)}
-    <p class="faint" style="margin-top:14px">Fases — opcional, como en tu app de salud:</p>
-    ${pairField('REM', 'sRem', s.rem)}
-    ${pairField('Ligero', 'sLight', s.light)}
-    ${pairField('Profundo', 'sDeep', s.deep)}
-    ${pairField('Vigilia (tiempo despierto)', 'sAwake', s.awake)}
+    <p class="faint">Total dormido — sin horas de acostarte o despertar.</p>
+    <div class="grid2" style="margin-top:10px">
+      <label class="field"><span>Horas</span><input type="number" id="sTotalH" value="${v.h}" min="0"></label>
+      <label class="field"><span>Minutos</span><input type="number" id="sTotalM" value="${v.m}" min="0" max="59"></label>
+    </div>
     <button class="btn sleep block" style="margin-top:16px" data-action="confirm-sleep" data-date="${date}">Guardar sueño</button>
     ${STATE.sleep[date] ? `<button class="btn ghost block" style="margin-top:8px;color:var(--danger)" data-action="delete-sleep-log" data-date="${date}">Borrar registro</button>` : ''}
   `);
 }
 function confirmSleepLog(date){
-  const hmToMin = (idPrefix)=> (parseInt($('#'+idPrefix+'H').value)||0)*60 + (parseInt($('#'+idPrefix+'M').value)||0);
-  STATE.sleep[date] = {
-    totalMin: hmToMin('sTotal'),
-    rem: hmToMin('sRem'), light: hmToMin('sLight'),
-    deep: hmToMin('sDeep'), awake: hmToMin('sAwake'),
-  };
+  const totalMin = (parseInt($('#sTotalH').value)||0)*60 + (parseInt($('#sTotalM').value)||0);
+  STATE.sleep[date] = { totalMin };
   saveState(); touchStreak(todayISO()); addXP(10); checkBadges();
   closeSheet(); toast('Sueño registrado', {icon:'moon'}); render();
 }
@@ -5005,6 +5224,7 @@ function render(){
   else if(ACTIVE_TAB==='progreso') renderProgreso();
   else if(ACTIVE_TAB==='perfil') renderPerfil();
   animateRingsIn();
+  wireSparklines();
 }
 
 /* ---------- Day-goal status (for calendar rings) ---------- */
@@ -5131,13 +5351,11 @@ function openHistoryDayPeek(date){
   } else {
     body = `<p class="muted">No entrenaste este día.</p>`;
   }
-  // Sueño: horas totales + fases si hay registro, para ver de un vistazo si falta o está incompleto
+  // Sueño: horas totales, para ver de un vistazo si falta o está incompleto
   let sleepDetailHtml = '<span class="faint">Sin registro</span>';
   if(status.sleepEntry){
     const s = status.sleepEntry;
-    const pct = (min)=> s.totalMin ? Math.round((min||0)/s.totalMin*100) : 0;
-    sleepDetailHtml = `${round1(s.totalMin/60)}h <span class="faint">/ ${status.sleepGoal}h meta</span>
-      <div class="faint" style="margin-top:2px">${pct(s.deep)}% profundo · ${pct(s.rem)}% REM · ${pct(s.light)}% ligero</div>`;
+    sleepDetailHtml = `${round1(s.totalMin/60)}h <span class="faint">/ ${status.sleepGoal}h meta</span>`;
   }
   // Alimentación: listado real de comidas y antojos del día, no solo el total — así se ve qué falta.
   // Cada fila se puede borrar directamente (por si algo quedó mal registrado ese día).
@@ -5310,6 +5528,7 @@ document.addEventListener('click', (e)=>{
     case 'open-swap-day': openSwapDaySheet(); break;
     case 'pick-swap-day': pickSwapDay(parseInt(el.dataset.day)); break;
     case 'open-rest-day-info': openRestDayInfo(); break;
+    case 'view-split-day': openSplitDayDetail(parseInt(el.dataset.day)); break;
     case 'open-calendar': openCalendar(); break;
     case 'cal-prev-month': shiftCalendarMonth(-1); break;
     case 'cal-next-month': shiftCalendarMonth(1); break;
@@ -5359,6 +5578,7 @@ document.addEventListener('click', (e)=>{
     case 'toggle-extra-context': toggleExtraContext(); break;
     case 'toggle-extra-manual': toggleExtraManual(); break;
     case 'save-extra': saveExtraForm(); break;
+    case 'save-custom-food': saveCustomFood(); break;
     case 'save-alcohol-extra': saveAlcoholExtra(); break;
     case 'open-emergency-check': openEmergencyCheck(); break;
     case 'evaluate-emergency': evaluateEmergency(); break;
@@ -5406,7 +5626,6 @@ document.addEventListener('change', (e)=>{
   if(!el || el.tagName!=='INPUT') return;
   const a = el.dataset.action;
   if(a==='toggle-supp'){ toggleSupp(el.dataset.date, el.dataset.supp); }
-  else if(a==='toggle-warmup-item'){ toggleWarmupItem(parseInt(el.dataset.idx)); }
   else if(a==='toggle-cooldown-item'){ toggleCooldownItem(parseInt(el.dataset.idx)); }
   else if(a==='toggle-home-item'){ toggleHomeItem(parseInt(el.dataset.idx)); }
   else if(a==='import-file'){ if(el.files[0]) importDataFile(el.files[0]); }
