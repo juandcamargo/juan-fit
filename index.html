@@ -931,6 +931,7 @@ const EX_PHOTO = {
   sentadilla_smith: 'images/exercises/sentadilla_smith.webp',
   sissy_squat: 'images/exercises/sissy_squat.webp',
   step_back_lunge: 'images/exercises/step_back_lunge.webp',
+  face_pull: 'images/exercises/face_pull.webp',
 };
 function exIllustration(exId){
   if(EX_PHOTO[exId]) return `<img src="${EX_PHOTO[exId]}" alt="" style="display:block;width:100%;height:auto" loading="lazy">`;
@@ -1043,6 +1044,13 @@ const EXERCISES = {
   encogimiento: {id:'encogimiento', name:'Encogimiento de hombros', day:6, muscles:['traps'], equip:'barbell', weight:100, sets:4, reps:'12-15', rest:60, alts:[]},
 };
 const DAY_ORDER = {1:'Empuje/Tirón A', 2:'Piernas · Cuádriceps', 3:'Cardio', 4:'Empuje/Tirón B', 5:'Piernas · Glúteo/Isquios', 6:'Hombro/Brazos', 7:'Descanso'};
+/* Ilustración de músculos trabajados por día (reemplaza el muscleMap() genérico en la tarjeta
+   de Entrenamiento del día — ya viene con las dos vistas, frontal y de espalda, en una sola imagen). */
+const DAY_PHOTO = {1:'images/days/day1.webp', 2:'images/days/day2.webp', 3:'images/days/cardio.webp', 4:'images/days/day4.webp', 5:'images/days/day5.webp', 6:'images/days/day6.webp', 7:'images/days/descanso.webp'};
+function dayPhotoImg(day){
+  if(!DAY_PHOTO[day]) return '';
+  return `<div style="display:flex;justify-content:center;padding:8px 0"><img src="${DAY_PHOTO[day]}" alt="" style="width:100%;max-width:200px;height:auto" loading="lazy"></div>`;
+}
 const ALT_ONLY_IDS = new Set(Object.values(EXERCISES).flatMap(e=>e.alts||[]));
 function exercisesForDay(day){ return Object.values(EXERCISES).filter(e=>e.day===day && !ALT_ONLY_IDS.has(e.id)); }
 
@@ -2666,6 +2674,7 @@ function buildTrainingSessionCard(){
       <div class="row between"><span class="tag sleep">${icon('wave',13,{valign:'-2px'})} ${isManualRest?'Descanso':'Descanso sugerido'}</span></div>
       <h3 style="font-size:20px;font-weight:500;margin-top:10px">${isManualRest?'Hoy marcaste descanso':'Completaste tu ciclo de 6 días'}</h3>
       <p class="section-sub" style="margin-top:6px">${isManualRest?`Sin problema — le avisamos a la app. Tu nutrición de hoy se ajusta y el Día ${nextUp} te espera cuando vuelvas.`:'Un día de descanso ahora te deja fresco para arrancar el Día 1 con más fuerza. Si prefieres seguir de una, puedes entrenar igual.'}</p>
+      ${dayPhotoImg(7)}
       <div class="divider" style="margin:12px 0"></div>
       <b style="font-size:14px">Cómo aprovechar tu día de descanso</b>
       <ul style="margin:8px 0 4px;padding-left:18px;font-size:13.5px;line-height:1.7" class="muted">
@@ -2716,7 +2725,7 @@ function buildTrainingSessionCard(){
       <h3 style="font-size:20px;font-weight:500;margin-top:4px">${sched.label}</h3>
       <span class="faint">Día ${sched.day} · Gimnasio</span>
       ${sessionKcalHtml}
-      ${muscleMap(sched.type==='cardio'?[]:[...new Set(exercisesForDay(sched.day).flatMap(e=>e.muscles))])}
+      ${dayPhotoImg(sched.day)}
       ${(sched.type==='gym' && !sched.inProgress) ? `<div class="row" style="gap:10px;margin-top:4px">
         <button class="btn primary" style="flex:1" data-action="go-workout" data-day="${sched.day}" data-mode="full">Completo</button>
         <button class="btn light" style="flex:1" data-action="go-workout" data-day="${sched.day}" data-mode="short">Corto</button>
