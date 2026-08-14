@@ -9,7 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
   color-scheme: dark;
@@ -68,6 +68,7 @@ body{
   font-variant-numeric: tabular-nums;
 }
 h1,h2,h3,h4,p{ margin:0; }
+b,strong{ font-weight:500; }
 button{ font-family: inherit; }
 .app-shell{
   max-width: 480px;
@@ -105,7 +106,7 @@ button{ font-family: inherit; }
 .topbar.scrolled{ border-bottom-color: var(--hairline); box-shadow: 0 8px 24px -20px oklch(0 0 0 / .4); }
 .topbar .brand{ display:flex; flex-direction:column; gap:1px; }
 .topbar .brand b{
-  font-size:20px; letter-spacing:-0.03em; font-weight:800;
+  font-size:20px; letter-spacing:-0.03em; font-weight:500;
   background: linear-gradient(120deg, var(--ink) 40%, var(--strength) 130%);
   -webkit-background-clip:text; background-clip:text; color:transparent;
 }
@@ -114,7 +115,7 @@ button{ font-family: inherit; }
 .pill{
   display:inline-flex; align-items:center; gap:5px;
   padding: 6px 11px; border-radius: 999px;
-  background: var(--surface-2); font-size:13px; font-weight:650;
+  background: var(--surface-2); font-size:13px; font-weight:500;
   border:1px solid var(--hairline);
   transition: transform .15s var(--ease-spring), box-shadow .2s var(--ease);
 }
@@ -140,7 +141,7 @@ button{ font-family: inherit; }
 @keyframes cardIn{ from{ opacity:0; transform: translateY(14px) scale(.98); } to{ opacity:1; transform:none; } }
 @media (prefers-reduced-motion: reduce){ .view > *{ animation: fadeOnly .2s linear both; } }
 
-.section-title{ font-size:24px; font-weight:850; letter-spacing:-0.03em; margin: 24px 0 12px; }
+.section-title{ font-size:24px; font-weight:500; letter-spacing:-0.03em; margin: 24px 0 12px; }
 .section-title:first-child{ margin-top:6px; }
 .section-sub{ font-size:13px; color:var(--ink-muted); margin-top:-8px; margin-bottom:14px; }
 
@@ -175,7 +176,7 @@ button{ font-family: inherit; }
   appearance:none; border:none; cursor:pointer;
   display:inline-flex; align-items:center; justify-content:center; gap:8px;
   padding: 14px 20px; border-radius: 999px;
-  font-size:15px; font-weight:750; letter-spacing:-0.01em;
+  font-size:15px; font-weight:500; letter-spacing:-0.01em;
   background: var(--surface-2); color: var(--ink);
   transition: transform .18s var(--ease-spring), background .2s var(--ease), box-shadow .25s var(--ease);
 }
@@ -206,7 +207,7 @@ button{ font-family: inherit; }
 .seg{ display:flex; background:var(--surface-2); border-radius:12px; padding:3px; gap:2px; }
 .seg button{
   flex:1; border:none; background:transparent; padding:9px 6px; border-radius:9px;
-  font-size:13px; font-weight:650; color:var(--ink-muted); cursor:pointer; transition: all .25s var(--ease);
+  font-size:13px; font-weight:500; color:var(--ink-muted); cursor:pointer; transition: all .25s var(--ease);
 }
 .seg button.active{ background:var(--surface); color:var(--ink); box-shadow: var(--shadow-btn); }
 
@@ -234,14 +235,14 @@ button{ font-family: inherit; }
   flex:1;
 }
 .tab-btn svg{ width:24px; height:24px; transition: transform .3s var(--ease-spring); }
-.tab-btn span{ font-size:10.5px; font-weight:650; }
+.tab-btn span{ font-size:10.5px; font-weight:500; }
 .tab-btn.active{ color: var(--strength); }
 .tab-btn.active svg{ transform: translateY(-1px) scale(1.08); }
 .tab-btn:active{ transform: scale(0.9); }
 
 /* ---------- Inputs ---------- */
 label.field{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
-label.field span{ font-size:12.5px; font-weight:650; color:var(--ink-muted); }
+label.field span{ font-size:12.5px; font-weight:500; color:var(--ink-muted); }
 input, select, textarea{
   font-family:inherit; font-size:16px; padding:12px 13px; border-radius:12px;
   border:1px solid var(--hairline); background:var(--surface-2); color:var(--ink); width:100%;
@@ -262,7 +263,7 @@ textarea{ resize:vertical; min-height:70px; }
 /* ---------- Misc ---------- */
 .muted{ color:var(--ink-muted); }
 .faint{ color:var(--ink-faint); font-size:12.5px; }
-.tag{ display:inline-flex; padding:4px 10px; border-radius:999px; font-size:11.5px; font-weight:700; background:var(--surface-3); color:var(--ink-muted); }
+.tag{ display:inline-flex; padding:4px 10px; border-radius:999px; font-size:11.5px; font-weight:500; background:var(--surface-3); color:var(--ink-muted); }
 button.tag{ border:none; cursor:pointer; font-family:inherit; transition: transform .15s var(--ease-spring); }
 button.tag:active{ transform:scale(0.93); }
 .tag.strength{ background: color-mix(in oklch, var(--strength) 20%, var(--surface)); color: var(--strength); }
@@ -299,7 +300,7 @@ button.tag:active{ transform:scale(0.93); }
 .sheet.open{ transform: translate(-50%, 0); }
 @media (prefers-reduced-motion: reduce){ .sheet, .sheet-backdrop{ transition: opacity .2s linear; } .sheet{ transform: translate(-50%,0); } .sheet:not(.open){ opacity:0; pointer-events:none; } }
 .sheet-handle{ width:36px; height:5px; border-radius:99px; background:var(--surface-3); margin: 6px auto 14px; }
-.sheet h3{ font-size:19px; font-weight:800; margin-bottom:14px; letter-spacing:-0.01em; }
+.sheet h3{ font-size:19px; font-weight:500; margin-bottom:14px; letter-spacing:-0.01em; }
 .sheet > *{ animation: sheetItemIn .4s var(--ease) both; }
 .sheet > *:nth-child(1){ animation-delay:0s; }
 .sheet > *:nth-child(2){ animation-delay:.03s; }
@@ -314,7 +315,7 @@ button.tag:active{ transform:scale(0.93); }
 #toast-host{ position:fixed; top:calc(8px + var(--safe-top)); left:50%; transform:translateX(-50%); z-index:60; display:flex; flex-direction:column; gap:8px; align-items:center; width:100%; max-width:440px; padding:0 16px; }
 .toast{
   display:flex; align-items:center; gap:10px; background: var(--surface); color:var(--ink);
-  padding:12px 16px; border-radius:16px; font-size:14px; font-weight:650; box-shadow: var(--shadow-elevated);
+  padding:12px 16px; border-radius:16px; font-size:14px; font-weight:500; box-shadow: var(--shadow-elevated);
   animation: toastIn .5s var(--ease-spring); border:1px solid var(--hairline);
 }
 .toast.badge{ background: linear-gradient(135deg, color-mix(in oklch, var(--gamify) 32%, var(--surface)), var(--surface)); }
@@ -335,7 +336,7 @@ button.tag:active{ transform:scale(0.93); }
 .badge-item:active{ transform:scale(0.94); }
 .badge-item.locked{ opacity:.35; filter:grayscale(1); }
 .badge-item .icon{ width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; background: linear-gradient(155deg, var(--gamify-2), var(--gamify)); }
-.badge-item span{ font-size:10.5px; font-weight:650; line-height:1.2; color:var(--ink-muted); }
+.badge-item span{ font-size:10.5px; font-weight:500; line-height:1.2; color:var(--ink-muted); }
 
 .week-strip{ display:flex; gap:6px; overflow-x:auto; padding:2px 2px 8px; margin: 0 -2px; }
 .day-chip{
@@ -351,18 +352,18 @@ button.tag:active{ transform:scale(0.93); }
 
 .cal-grid{ display:grid; grid-template-columns: repeat(7, 1fr); gap:2px; }
 .cal-grid.cal-dow{ margin-bottom:4px; }
-.cal-grid.cal-dow span{ text-align:center; font-size:11px; font-weight:700; color:var(--ink-faint); text-transform:uppercase; }
+.cal-grid.cal-dow span{ text-align:center; font-size:11px; font-weight:500; color:var(--ink-faint); text-transform:uppercase; }
 .cal-cell{ display:flex; flex-direction:column; align-items:center; gap:3px; padding:5px 0 8px; border-radius:12px; cursor:pointer; transition: background .2s var(--ease), transform .15s var(--ease-spring); }
 .cal-cell:active{ background:var(--surface-2); transform:scale(0.94); }
-.cal-cell span{ font-size:12px; font-weight:650; color:var(--ink-muted); }
-.cal-cell.today span{ color:var(--strength); font-weight:800; }
+.cal-cell span{ font-size:12px; font-weight:500; color:var(--ink-muted); }
+.cal-cell.today span{ color:var(--strength); font-weight:500; }
 
 .set-row{ display:grid; grid-template-columns: 32px 1fr 1fr 44px; gap:8px; align-items:center; padding:8px 0; }
 .set-row input{ padding:9px 8px; text-align:center; }
-.set-row .idx{ width:26px; height:26px; border-radius:50%; background:var(--surface-3); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; transition: all .3s var(--ease-spring); }
+.set-row .idx{ width:26px; height:26px; border-radius:50%; background:var(--surface-3); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:500; transition: all .3s var(--ease-spring); }
 .set-row.done .idx{ background: var(--success); color:#0a1f13; transform:scale(1.08); }
 
-a.link{ color: var(--strength); font-weight:650; text-decoration:none; }
+a.link{ color: var(--strength); font-weight:500; text-decoration:none; }
 .food-item{ display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid var(--hairline); }
 .food-item:last-child{ border:none; }
 .macro-chip{ display:flex; gap:8px; font-size:11px; color:var(--ink-faint); margin-top:2px; }
@@ -370,17 +371,17 @@ a.link{ color: var(--strength); font-weight:650; text-decoration:none; }
 .spark-endpoints{ display:flex; justify-content:space-between; margin-bottom:6px; }
 .spark-endpoint span{ display:block; font-size:11px; color:var(--ink-faint); }
 .spark-endpoint b{ display:block; font-size:16px; margin-top:1px; }
-.spark-tip{ position:absolute; top:0; transform:translate(-50%,-100%); background:var(--ink); color:var(--surface); font-size:11px; font-weight:700; padding:4px 8px; border-radius:8px; white-space:nowrap; pointer-events:none; opacity:0; transition:opacity .1s; z-index:5; }
-.spark-tip span{ display:block; font-weight:600; opacity:.8; font-size:10px; margin-top:1px; }
+.spark-tip{ position:absolute; top:0; transform:translate(-50%,-100%); background:var(--ink); color:var(--surface); font-size:11px; font-weight:500; padding:4px 8px; border-radius:8px; white-space:nowrap; pointer-events:none; opacity:0; transition:opacity .1s; z-index:5; }
+.spark-tip span{ display:block; font-weight:500; opacity:.8; font-size:10px; margin-top:1px; }
 .spark-axis-label{ font-size:9px; fill:var(--ink-faint); }
 .pr-flash{ animation: prFlash 1.2s var(--ease); }
 @keyframes prFlash{ 0%{ background: color-mix(in oklch, var(--gamify) 40%, var(--surface)); } 100%{ background:var(--surface); } }
 .onb-steps{ display:flex; gap:5px; margin-bottom:18px; }
 .onb-steps i{ flex:1; height:4px; border-radius:99px; background:var(--surface-3); transition: background .3s var(--ease); }
 .onb-steps i.done{ background: linear-gradient(90deg, var(--strength-2), var(--strength)); }
-.big-num{ font-size:36px; font-weight:850; letter-spacing:-0.03em; }
+.big-num{ font-size:36px; font-weight:500; letter-spacing:-0.03em; }
 .stat-mini{ display:flex; flex-direction:column; gap:2px; }
-.stat-mini b{ font-size:18px; font-weight:750; }
+.stat-mini b{ font-size:18px; font-weight:500; }
 .stat-mini span{ font-size:11.5px; color:var(--ink-muted); }
 .holiday-banner{ background: color-mix(in oklch, var(--gamify) 16%, var(--surface)); border:1px solid color-mix(in oklch, var(--gamify) 35%, transparent); border-radius:var(--radius-m); padding:12px 14px; margin-bottom:14px; font-size:13.5px; }
 .swap-option{ display:flex; justify-content:space-between; align-items:center; padding:12px; border-radius:14px; background:var(--surface-2); margin-bottom:8px; cursor:pointer; border:1px solid transparent; transition: transform .15s var(--ease-spring), border-color .2s var(--ease); }
@@ -393,7 +394,7 @@ a.link{ color: var(--strength); font-weight:650; text-decoration:none; }
   </div>
   <div id="authGate" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;align-items:center;justify-content:center;padding:24px">
     <div style="width:100%;max-width:340px">
-      <h2 style="font-size:22px;font-weight:800;margin-bottom:6px">Juan Fit</h2>
+      <h2 style="font-size:22px;font-weight:500;margin-bottom:6px">Juan Fit</h2>
       <p class="faint" style="margin-bottom:18px">Inicia sesión con tu correo para sincronizar tu progreso en todos tus dispositivos. No necesitas contraseña — te enviamos un enlace.</p>
       <div id="authGateForm">
         <label class="field"><span>Correo</span><input type="email" id="authEmail" placeholder="tu@correo.com" autocomplete="email"></label>
@@ -700,7 +701,7 @@ function ring(pct, {size=64, stroke=8, color='var(--strength)', label='', sub=''
       <circle class="ring-fill enter" cx="${size/2}" cy="${size/2}" r="${r}" stroke-width="${stroke}" stroke="url(#${gid})" stroke-dasharray="${c}" stroke-dashoffset="${c}" data-target="${off}"/>
       ${over?`<circle class="ring-fill enter" cx="${size/2}" cy="${size/2}" r="${r*0.72}" stroke-width="${stroke*0.55}" stroke-linecap="round" stroke="url(#${gid2})" stroke-dasharray="${2*Math.PI*r*0.72}" stroke-dashoffset="${2*Math.PI*r*0.72}" data-target="${2*Math.PI*r*0.72 - (overFraction||0.03)*2*Math.PI*r*0.72}" opacity=".95"/>`:''}
     </svg>
-    <div class="ring-label"><b style="font-size:${size*0.22}px;font-weight:800;display:block">${label}</b>${sub?`<span style="font-size:${size*0.12}px;color:var(--ink-muted)">${sub}</span>`:''}${over?`<span style="display:block;font-size:${size*0.12}px;font-weight:700;color:${color}">${extraLaps>0?`+${extraLaps+1}× meta`:`+${Math.round((pct-1)*100)}%`}</span>`:(overLabel?`<span style="display:block;font-size:${size*0.13}px;font-weight:700;color:var(--danger)">${overLabel}</span>`:'')}</div>
+    <div class="ring-label"><b style="font-size:${size*0.22}px;font-weight:500;display:block">${label}</b>${sub?`<span style="font-size:${size*0.12}px;color:var(--ink-muted)">${sub}</span>`:''}${over?`<span style="display:block;font-size:${size*0.12}px;font-weight:500;color:${color}">${extraLaps>0?`+${extraLaps+1}× meta`:`+${Math.round((pct-1)*100)}%`}</span>`:(overLabel?`<span style="display:block;font-size:${size*0.13}px;font-weight:500;color:var(--danger)">${overLabel}</span>`:'')}</div>
   </div>`;
 }
 function animateRingsIn(){
@@ -2207,7 +2208,7 @@ function renderDailyRecapSheet(recap){
 
   return `<div style="padding:4px 2px 8px">
     <div class="row between"><span class="tag gamify">${icon('star',13,{valign:'-2px'})} Resumen de ayer</span></div>
-    <h3 style="font-size:21px;font-weight:800;margin-top:10px">${(l=>l.charAt(0).toUpperCase()+l.slice(1))(fmtDateLong(recap.iso))}</h3>
+    <h3 style="font-size:21px;font-weight:500;margin-top:10px">${(l=>l.charAt(0).toUpperCase()+l.slice(1))(fmtDateLong(recap.iso))}</h3>
     ${winsHtml}
     ${adjustmentsHtml}
     <div class="divider" style="margin:16px 0"></div>
@@ -2570,7 +2571,7 @@ function buildTrainingSessionCard(){
     const nextUp = nextSplitDay();
     planCard = `<div class="card">
       <div class="row between"><span class="tag sleep">${icon('wave',13,{valign:'-2px'})} ${isManualRest?'Descanso':'Descanso sugerido'}</span></div>
-      <h3 style="font-size:20px;font-weight:800;margin-top:10px">${isManualRest?'Hoy marcaste descanso':'Completaste tu ciclo de 6 días'}</h3>
+      <h3 style="font-size:20px;font-weight:500;margin-top:10px">${isManualRest?'Hoy marcaste descanso':'Completaste tu ciclo de 6 días'}</h3>
       <p class="section-sub" style="margin-top:6px">${isManualRest?`Sin problema — le avisamos a la app. Tu nutrición de hoy se ajusta y el Día ${nextUp} te espera cuando vuelvas.`:'Un día de descanso ahora te deja fresco para arrancar el Día 1 con más fuerza. Si prefieres seguir de una, puedes entrenar igual.'}</p>
       <div class="divider" style="margin:12px 0"></div>
       <b style="font-size:14px">Cómo aprovechar tu día de descanso</b>
@@ -2586,7 +2587,7 @@ function buildTrainingSessionCard(){
   } else if(sched.type==='home'){
     planCard = `<div class="card">
       <div class="row between"><span class="tag gamify">${icon('home',13,{valign:'-2px'})} Rutina en casa</span><span class="faint">${sched.routine.mins} min</span></div>
-      <h3 style="font-size:20px;font-weight:800;margin-top:10px">${sched.routine.name}</h3>
+      <h3 style="font-size:20px;font-weight:500;margin-top:10px">${sched.routine.name}</h3>
       <p class="section-sub" style="margin-top:4px">${sched.reason} — corta pero efectiva, sin equipo de gimnasio.</p>
       <ul style="margin:10px 0 14px;padding-left:18px;font-size:14px;line-height:1.6">${sched.routine.items.map(i=>`<li>${i}</li>`).join('')}</ul>
       <div class="row" style="gap:10px">
@@ -2619,7 +2620,7 @@ function buildTrainingSessionCard(){
     </div>` : '';
     planCard = `<div class="card">
       <div class="row between"><span class="tag ${tagClass}">Día ${sched.day} · Gimnasio</span>${doneToday?`<span class="tag" style="background:color-mix(in oklch, var(--success) 22%, var(--surface));color:var(--success)">Completado ✓</span>`:''}</div>
-      <h3 style="font-size:20px;font-weight:800;margin-top:10px">${sched.label}</h3>
+      <h3 style="font-size:20px;font-weight:500;margin-top:10px">${sched.label}</h3>
       ${sessionKcalHtml}
       ${muscleMap(sched.type==='cardio'?[]:[...new Set(exercisesForDay(sched.day).flatMap(e=>e.muscles))])}
       ${(sched.type==='gym' && !sched.inProgress) ? `<div class="row" style="gap:10px;margin-top:4px">
@@ -2715,14 +2716,14 @@ function renderHoy(){
 
   const balanceCard = `<div class="card">
     <div class="row between"><b style="font-size:15px">Balance calórico de hoy</b><span class="faint">estimado</span></div>
-    <p class="faint" style="margin-top:10px;font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em">Hasta ahora (parcial)</p>
+    <p class="faint" style="margin-top:10px;font-weight:500;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em">Hasta ahora (parcial)</p>
     <div class="grid3" style="margin-top:8px">
       <div class="stat-mini"><b>${cb.consumed}</b><span>kcal consumidas hoy</span></div>
       <div class="stat-mini"><b>${bt.soFar}</b><span>kcal quemadas hoy</span></div>
       <div class="stat-mini"><b style="color:var(--ink-muted)">${actualLabel}</b><span>${actualWord}</span></div>
     </div>
     <div class="divider" style="margin:14px 0"></div>
-    <p class="faint" style="font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em">Proyección de cierre del día</p>
+    <p class="faint" style="font-weight:500;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em">Proyección de cierre del día</p>
     <div class="grid3" style="margin-top:8px">
       <div class="stat-mini"><b>${bt.fullDay}</b><span>gasto esperado hoy</span></div>
       <div class="stat-mini"><b>${cb.projected}</b><span>kcal esperadas hoy</span></div>
@@ -3354,7 +3355,7 @@ function renderNutricion(){
       if(!dish) return '';
       const logged = nut.planLogged[slot.id];
       return `<div class="divider" style="margin:10px 0"></div>
-        <div class="row between"><b style="font-size:13.5px">${slot.name}</b>${logged?`<span class="row" style="gap:8px"><span class="tag ${logged==='plan'?'strength':''}">${logged==='plan'?'Comiste esto':'Comiste otra cosa'}</span><button data-action="reset-plan-slot" data-slot="${slot.id}" style="font-size:12px;font-weight:650;color:var(--strength);background:none;border:none;padding:0;text-decoration:underline">Deshacer</button></span>`:''}</div>
+        <div class="row between"><b style="font-size:13.5px">${slot.name}</b>${logged?`<span class="row" style="gap:8px"><span class="tag ${logged==='plan'?'strength':''}">${logged==='plan'?'Comiste esto':'Comiste otra cosa'}</span><button data-action="reset-plan-slot" data-slot="${slot.id}" style="font-size:12px;font-weight:500;color:var(--strength);background:none;border:none;padding:0;text-decoration:underline">Deshacer</button></span>`:''}</div>
         <p style="font-size:13.5px;margin-top:4px">${dish.name}</p>
         <p class="faint" style="margin-top:2px">${dish.desc} · ${dish.kcal} kcal · P${dish.p} C${dish.c} G${dish.f}</p>
         ${!logged?`<div class="row" style="gap:8px;margin-top:8px">
@@ -4059,7 +4060,7 @@ function openExtraForm(categoryId){
     <b style="font-size:12.5px">Calculado automáticamente</b>
     <div class="card tight" style="background:var(--surface-2);margin:6px 0 10px" id="exPreview">${extraPreviewHTML(null)}</div>
     <div role="button" tabindex="0" data-action="toggle-extra-manual" class="row between" style="cursor:pointer">
-      <span style="font-weight:700;font-size:13.5px;color:var(--strength)">Ajustar valores manualmente</span>
+      <span style="font-weight:500;font-size:13.5px;color:var(--strength)">Ajustar valores manualmente</span>
       <svg id="exManualChevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
     </div>
     <div id="exManualBlock" style="display:none;margin-top:10px">
@@ -4757,7 +4758,7 @@ function renderProgreso(){
       const bLabel = balance>0?`+${balance}`:`${balance}`;
       const overs = Object.entries(macroOver).filter(([,v])=>v>0).map(([k,v])=>`${k==='kcal'?'+'+v+' kcal':k.toUpperCase()+' +'+v+'g'}`);
       return `<div class="food-item">
-        <div><b style="font-size:14px">${fmtDateShort(d)}</b><div class="macro-chip"><span>${consumed} kcal</span><span>quemadas ${burn}</span>${overs.map(o=>`<span style="color:var(--danger);font-weight:700">${o}</span>`).join('')}</div></div>
+        <div><b style="font-size:14px">${fmtDateShort(d)}</b><div class="macro-chip"><span>${consumed} kcal</span><span>quemadas ${burn}</span>${overs.map(o=>`<span style="color:var(--danger);font-weight:500">${o}</span>`).join('')}</div></div>
         <b style="color:${bColor};font-size:15px">${bLabel}</b>
       </div>`;
     }).join('')}
