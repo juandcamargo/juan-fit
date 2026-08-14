@@ -9,38 +9,38 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{
-  color-scheme: light;
-  /* Evolved Apple Activity ground: warm near-white bg, glassy white grouped cards, soft elevation */
-  --bg: oklch(0.968 0.006 256);
-  --surface: oklch(1 0 0);
-  --surface-2: oklch(0.955 0.006 256);
-  --surface-3: oklch(0.91 0.008 256);
-  --hairline: oklch(0 0 0 / 0.07);
-  --ink: oklch(0.16 0.008 256);
-  --ink-muted: oklch(0.42 0.012 256);
-  --ink-faint: oklch(0.58 0.012 256);
-  --strength: oklch(0.60 0.23 8);
-  --strength-2: oklch(0.72 0.19 32);
-  --strength-ink: oklch(0.99 0.01 8);
-  --nutrition: oklch(0.72 0.15 165);
-  --nutrition-2: oklch(0.84 0.15 145);
+  color-scheme: dark;
+  /* Modo oscuro con acento coral/rojo — fondo casi negro, tarjetas en gris oscuro, tipografía blanca y bold */
+  --bg: oklch(0.15 0.008 275);
+  --surface: oklch(0.205 0.010 275);
+  --surface-2: oklch(0.255 0.012 275);
+  --surface-3: oklch(0.32 0.014 275);
+  --hairline: oklch(1 0 0 / 0.09);
+  --ink: oklch(0.97 0.003 275);
+  --ink-muted: oklch(0.74 0.01 275);
+  --ink-faint: oklch(0.52 0.012 275);
+  --strength: oklch(0.63 0.22 25);
+  --strength-2: oklch(0.72 0.19 38);
+  --strength-ink: oklch(0.99 0.005 25);
+  --nutrition: oklch(0.74 0.16 155);
+  --nutrition-2: oklch(0.84 0.14 145);
   --nutrition-ink: oklch(0.99 0.01 165);
-  --sleep: oklch(0.60 0.19 285);
-  --sleep-2: oklch(0.74 0.15 300);
+  --sleep: oklch(0.66 0.18 285);
+  --sleep-2: oklch(0.77 0.15 295);
   --sleep-ink: oklch(0.99 0.01 285);
-  --gamify: oklch(0.75 0.16 75);
-  --gamify-2: oklch(0.86 0.14 95);
+  --gamify: oklch(0.78 0.15 85);
+  --gamify-2: oklch(0.87 0.13 95);
   --gamify-ink: oklch(0.18 0.03 75);
-  --danger: oklch(0.58 0.22 25);
-  --success: oklch(0.68 0.17 150);
-  --success-dark: oklch(0.42 0.14 150);
-  /* Activity-ring trio: outer=calorías (Move red), middle=proteína (Exercise green), inner=ejercicio (Stand cyan) */
-  --ring-cal: oklch(0.60 0.23 8);
-  --ring-cal-2: oklch(0.74 0.20 30);
-  --ring-protein: oklch(0.80 0.19 126);
-  --ring-protein-2: oklch(0.90 0.17 108);
-  --ring-exercise: oklch(0.75 0.13 210);
-  --ring-exercise-2: oklch(0.87 0.11 195);
+  --danger: oklch(0.63 0.23 25);
+  --success: oklch(0.72 0.17 150);
+  --success-dark: oklch(0.56 0.16 150);
+  /* Activity-ring trio: outer=calorías (coral), middle=proteína (verde), inner=ejercicio (cian) */
+  --ring-cal: oklch(0.63 0.22 25);
+  --ring-cal-2: oklch(0.74 0.19 40);
+  --ring-protein: oklch(0.80 0.18 130);
+  --ring-protein-2: oklch(0.88 0.16 115);
+  --ring-exercise: oklch(0.76 0.13 210);
+  --ring-exercise-2: oklch(0.86 0.11 200);
   --radius-s: 12px;
   --radius-m: 18px;
   --radius-l: 24px;
@@ -48,9 +48,9 @@
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --shadow-card: 0 1px 1px oklch(0 0 0 / 0.03), 0 10px 26px -14px oklch(0 0 0 / 0.16);
-  --shadow-elevated: 0 2px 4px oklch(0 0 0 / 0.05), 0 22px 44px -18px oklch(0 0 0 / 0.24);
-  --shadow-btn: 0 1px 2px oklch(0 0 0 / 0.06), 0 8px 18px -8px oklch(0 0 0 / 0.14);
+  --shadow-card: 0 1px 0 oklch(1 0 0 / 0.04), 0 10px 24px -12px oklch(0 0 0 / 0.55);
+  --shadow-elevated: 0 2px 4px oklch(0 0 0 / 0.3), 0 24px 48px -20px oklch(0 0 0 / 0.6);
+  --shadow-btn: 0 1px 2px oklch(0 0 0 / 0.25), 0 8px 16px -8px oklch(0 0 0 / 0.4);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -81,10 +81,10 @@ button{ font-family: inherit; }
   content:'';
   position:fixed; inset:0; z-index:-1; pointer-events:none;
   background:
-    radial-gradient(480px 320px at 12% -6%, color-mix(in oklch, var(--strength) 16%, transparent), transparent 70%),
-    radial-gradient(420px 300px at 100% 8%, color-mix(in oklch, var(--sleep) 13%, transparent), transparent 70%),
-    radial-gradient(500px 360px at 50% 100%, color-mix(in oklch, var(--nutrition) 10%, transparent), transparent 70%);
-  opacity:.7;
+    radial-gradient(480px 320px at 12% -6%, color-mix(in oklch, var(--strength) 22%, transparent), transparent 70%),
+    radial-gradient(420px 300px at 100% 8%, color-mix(in oklch, var(--sleep) 16%, transparent), transparent 70%),
+    radial-gradient(500px 360px at 50% 100%, color-mix(in oklch, var(--nutrition) 12%, transparent), transparent 70%);
+  opacity:.55;
 }
 ::-webkit-scrollbar{ width:0; height:0; }
 
@@ -154,7 +154,7 @@ button{ font-family: inherit; }
 }
 .card::before{
   content:''; position:absolute; inset:0 0 auto 0; height:1px;
-  background: linear-gradient(90deg, transparent, oklch(1 0 0 / .9), transparent);
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / .14), transparent);
   opacity:.6; pointer-events:none;
 }
 .card:active{ transform: scale(0.985); }
@@ -171,8 +171,8 @@ button{ font-family: inherit; }
 .btn{
   appearance:none; border:none; cursor:pointer;
   display:inline-flex; align-items:center; justify-content:center; gap:8px;
-  padding: 13px 18px; border-radius: var(--radius-m);
-  font-size:15px; font-weight:700; letter-spacing:-0.01em;
+  padding: 14px 20px; border-radius: 999px;
+  font-size:15px; font-weight:750; letter-spacing:-0.01em;
   background: var(--surface-2); color: var(--ink);
   transition: transform .18s var(--ease-spring), background .2s var(--ease), box-shadow .25s var(--ease);
 }
@@ -180,9 +180,9 @@ button{ font-family: inherit; }
 .btn.primary{ background: linear-gradient(155deg, var(--strength-2), var(--strength)); color: var(--strength-ink); box-shadow: 0 10px 22px -10px color-mix(in oklch, var(--strength) 65%, transparent); }
 .btn.nutrition{ background: linear-gradient(155deg, var(--nutrition-2), var(--nutrition)); color: var(--nutrition-ink); box-shadow: 0 10px 22px -10px color-mix(in oklch, var(--nutrition) 55%, transparent); }
 .btn.sleep{ background: linear-gradient(155deg, var(--sleep-2), var(--sleep)); color: var(--sleep-ink); box-shadow: 0 10px 22px -10px color-mix(in oklch, var(--sleep) 55%, transparent); }
-.btn.ghost{ background: transparent; border:1px solid var(--hairline); box-shadow:none; }
+.btn.ghost{ background: transparent; border:1.5px solid var(--hairline); box-shadow:none; }
 .btn.block{ width:100%; }
-.btn.sm{ padding:9px 13px; font-size:13px; border-radius:11px; }
+.btn.sm{ padding:9px 15px; font-size:13px; border-radius:999px; }
 .btn.danger{ background: color-mix(in oklch, var(--danger) 18%, var(--surface)); color: var(--danger); box-shadow:none; }
 .btn:disabled{ opacity:.4; pointer-events:none; }
 .icon-btn{
@@ -259,7 +259,7 @@ textarea{ resize:vertical; min-height:70px; }
 /* ---------- Misc ---------- */
 .muted{ color:var(--ink-muted); }
 .faint{ color:var(--ink-faint); font-size:12.5px; }
-.tag{ display:inline-flex; padding:4px 9px; border-radius:8px; font-size:11.5px; font-weight:700; background:var(--surface-3); color:var(--ink-muted); }
+.tag{ display:inline-flex; padding:4px 10px; border-radius:999px; font-size:11.5px; font-weight:700; background:var(--surface-3); color:var(--ink-muted); }
 button.tag{ border:none; cursor:pointer; font-family:inherit; transition: transform .15s var(--ease-spring); }
 button.tag:active{ transform:scale(0.93); }
 .tag.strength{ background: color-mix(in oklch, var(--strength) 20%, var(--surface)); color: var(--strength); }
