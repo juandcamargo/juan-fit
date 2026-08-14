@@ -367,7 +367,7 @@ button.tag:active{ transform:scale(0.93); }
 .set-row{ display:grid; grid-template-columns: 32px 1fr 1fr 44px; gap:8px; align-items:center; padding:8px 0; }
 .set-row input{ padding:9px 8px; text-align:center; }
 .set-row .idx{ width:26px; height:26px; border-radius:50%; background:var(--surface-3); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:500; transition: all .3s var(--ease-spring); }
-.set-row.done .idx{ background: var(--success); color:#0a1f13; transform:scale(1.08); }
+.set-row.done .idx{ background: #93ded6; color:#0a0a0a; transform:scale(1.08); }
 
 a.link{ color: var(--strength); font-weight:500; text-decoration:none; }
 .food-item{ display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid var(--hairline); }
@@ -3024,25 +3024,6 @@ const COOLDOWN_CONTENT = {
   upper: ['Estiramiento de pecho en marco de puerta, 30s por lado','Estiramiento de tríceps, 30s por lado','Estiramiento de dorsal (lat stretch), 30s por lado','Respiración profunda, 1 min'],
   lower: ['Estiramiento de cuádriceps, 30s por lado','Estiramiento de isquiotibiales, 30s por lado','Estiramiento de glúteo (figura 4), 30s por lado','Pantorrilla contra la pared, 30s por lado'],
 };
-function phaseChecklist({title, sub, items, checkedMap, toggleAction, ctaLabel, ctaAction, extraButton, backAction}){
-  $('#view-root').innerHTML = `<div class="view">
-    <div class="row between" style="margin-bottom:6px">
-      <button class="icon-btn" data-action="${backAction||'exit-session'}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-      <b style="font-size:15px">${title}</b>
-      <span class="faint">~5 min</span>
-    </div>
-    <div class="card">
-      <p class="faint" style="margin-bottom:12px">${sub}</p>
-      ${items.map((t,i)=>`<label class="chk" style="margin-bottom:12px">
-        <input type="checkbox" data-action="${toggleAction}" data-idx="${i}" ${checkedMap?.[i]?'checked':''}>
-        <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
-        <span style="flex:1">${t}</span>
-      </label>`).join('')}
-      <button class="btn primary block" style="margin-top:6px" data-action="${ctaAction}">${ctaLabel}</button>
-      ${extraButton||''}
-    </div>
-  </div>`;
-}
 function renderWarmupPhase(){
   const group = dayMuscleGroup(SESSION.day);
   const items = WARMUP_CONTENT[group];
@@ -3062,13 +3043,19 @@ function renderWarmupPhase(){
 function renderCooldownPhase(){
   const group = dayMuscleGroup(SESSION.day);
   const isGym = !SESSION.homeMode;
-  phaseChecklist({
-    title:'Estiramiento', sub:'Cierra la sesión bajando la frecuencia cardiaca y soltando los músculos trabajados.',
-    items: COOLDOWN_CONTENT[group], checkedMap: SESSION.cooldownChecked, toggleAction:'toggle-cooldown-item',
-    ctaLabel: isGym ? 'Continuar a cardio' : 'Terminar entrenamiento',
-    ctaAction: isGym ? 'go-postcardio' : 'finish-session',
-    backAction: 'back-to-main-phase',
-  });
+  const items = COOLDOWN_CONTENT[group];
+  $('#view-root').innerHTML = `<div class="view">
+    <div class="row between" style="margin-bottom:6px">
+      <button class="icon-btn" data-action="back-to-main-phase"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <b style="font-size:15px">Estiramiento</b>
+      <span class="faint">~5 min</span>
+    </div>
+    <div class="card">
+      <p class="faint" style="margin-bottom:12px">Cierra la sesión bajando la frecuencia cardiaca y soltando los músculos trabajados.</p>
+      <ul style="margin:0 0 14px;padding-left:18px;font-size:14px;line-height:1.8">${items.map(t=>`<li>${t}</li>`).join('')}</ul>
+      <button class="btn primary block" data-action="${isGym?'go-postcardio':'finish-session'}">${isGym?'Continuar a cardio':'Terminar entrenamiento'}</button>
+    </div>
+  </div>`;
 }
 function renderPostCardioPhase(){
   const c = SESSION.postCardio || {};
@@ -3086,11 +3073,6 @@ function renderPostCardioPhase(){
       <button class="btn ghost block" style="margin-top:8px" data-action="finish-session">Saltar por hoy</button>
     </div>
   </div>`;
-}
-function toggleCooldownItem(idx){
-  if(!SESSION.cooldownChecked) SESSION.cooldownChecked = {};
-  SESSION.cooldownChecked[idx] = !SESSION.cooldownChecked[idx];
-  saveState(); render();
 }
 function startMainPhase(){ SESSION.phase='main'; addXP(5); saveState(); render(); }
 function goCooldownPhase(){ SESSION.phase='cooldown'; addXP(5); saveState(); render(); }
@@ -5714,7 +5696,6 @@ document.addEventListener('change', (e)=>{
   if(!el || el.tagName!=='INPUT') return;
   const a = el.dataset.action;
   if(a==='toggle-supp'){ toggleSupp(el.dataset.date, el.dataset.supp); }
-  else if(a==='toggle-cooldown-item'){ toggleCooldownItem(parseInt(el.dataset.idx)); }
   else if(a==='toggle-home-item'){ toggleHomeItem(parseInt(el.dataset.idx)); }
   else if(a==='import-file'){ if(el.files[0]) importDataFile(el.files[0]); }
 });
