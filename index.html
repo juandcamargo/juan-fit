@@ -889,6 +889,13 @@ function exIllustration(exId){
   if(EX_PHOTO[exId]) return `<img src="${EX_PHOTO[exId]}" alt="" style="width:100%;height:100%;object-fit:contain" loading="lazy">`;
   return EX_ILLUS[EX_PATTERN[exId]] || EQUIP_ICON.body;
 }
+/* Relación alto/ancho real de las fotos de ejercicio recortadas (ver press_banca.webp).
+   Las miniaturas usan esta proporción en vez de forzar un cuadrado cuando el ejercicio tiene foto. */
+const EX_PHOTO_RATIO = 366/513;
+function exThumbBox(exId, size){
+  const h = EX_PHOTO[exId] ? Math.round(size*EX_PHOTO_RATIO) : size;
+  return `width:${size}px;height:${h}px`;
+}
 
 /* ---- Line-icon set (lineicons-inspired: thin stroke, 24x24, no fill) replacing all emoji glyphs ---- */
 const ICON_PATHS = {
@@ -2867,7 +2874,7 @@ function openSplitDayDetail(day){
   const rows = exs.map(ex=>{
     const best = bestSetForExercise(ex.id);
     return `<div class="food-item">
-      <div class="row" style="gap:10px"><div class="ex-thumb" style="width:38px;height:38px">${exIllustration(ex.id)}</div>
+      <div class="row" style="gap:10px"><div class="ex-thumb" style="${exThumbBox(ex.id,38)}">${exIllustration(ex.id)}</div>
         <div><b style="font-size:13.5px">${ex.name}</b><div class="faint">${ex.sets}x${ex.reps}</div></div>
       </div>
       ${best?`<span class="tag gamify">${icon('trophy',12,{valign:'-2px'})} ${best.weight}kg</span>`:`<span class="faint" style="font-size:12px">Sin registros</span>`}
@@ -3143,7 +3150,7 @@ function renderWorkoutSession(){
     return `<div class="card tight" style="margin-bottom:10px">
       <div class="row between" role="button" tabindex="0" style="cursor:pointer" data-action="open-exercise" data-exid="${ex.id}">
         <div class="row" style="gap:12px">
-          <div class="ex-thumb">${exIllustration(activeEx.id)}</div>
+          <div class="ex-thumb" style="${exThumbBox(activeEx.id,52)}">${exIllustration(activeEx.id)}</div>
           <div>
             <div class="row" style="gap:6px"><b style="font-size:15px">${activeEx.name}</b>${ex.suggested?'<span class="tag gamify">sugerido</span>':''}</div>
             <div class="faint">${targetSets}x${activeEx.reps} · descanso ${activeEx.rest}s ${best?`· PR ${best.weight}kg`:''}</div>
@@ -3187,7 +3194,7 @@ function openExerciseSheet(exId){
       <div class="idx">${i+1}</div>
       <input type="text" inputmode="decimal" placeholder="${last}" value="${s?s.weight:''}" data-role="weight" style="text-align:center">
       <input type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')" placeholder="reps (${ex.reps})" value="${s?(s.reps??''):''}" data-role="reps" style="text-align:center">
-      <button class="icon-btn" data-action="log-set" data-exid="${ex.id}" data-baseid="${base.id}" data-idx="${i}" style="background:${s?'var(--success)':'var(--strength)'};color:${s?'#0a1f13':'var(--strength-ink)'}">
+      <button class="icon-btn" data-action="log-set" data-exid="${ex.id}" data-baseid="${base.id}" data-idx="${i}" style="background:${s?'#93ded6':'var(--strength)'};color:${s?'#0a0a0a':'var(--strength-ink)'}">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
       </button>
     </div>`;
@@ -3199,7 +3206,7 @@ function openExerciseSheet(exId){
       ${base.alts.map(aid=>{
         const a = EXERCISES[aid];
         return `<div class="swap-option ${swapped===aid?'selected':''}" role="button" tabindex="0" data-action="swap-exercise" data-baseid="${base.id}" data-altid="${aid}">
-          <div class="row" style="gap:10px"><div class="ex-thumb" style="width:38px;height:38px">${exIllustration(a.id)}</div><b style="font-size:13.5px">${a.name}</b></div>
+          <div class="row" style="gap:10px"><div class="ex-thumb" style="${exThumbBox(a.id,38)}">${exIllustration(a.id)}</div><b style="font-size:13.5px">${a.name}</b></div>
           <span class="faint">${a.sets}x${a.reps}</span>
         </div>`;
       }).join('')}
@@ -3214,19 +3221,19 @@ function openExerciseSheet(exId){
       <div style="width:100%;max-width:300px;color:var(--strength)">${exIllustration(ex.id)}</div>
     </div>
     <div class="row between" style="margin:10px 0">
-      <span class="tag strength">${targetSets} series objetivo</span>
+      <span class="tag" style="background:#93ded6;color:#0a0a0a">${targetSets} series objetivo</span>
       <span class="tag">${ex.reps} reps</span>
-      ${best?`<span class="tag gamify">${icon('trophy',13,{valign:'-2px'})} PR ${best.weight}kg</span>`:''}
+      ${best?`<span class="tag" style="background:#fff273;color:#0a0a0a">${icon('trophy',13,{valign:'-2px'})} PR ${best.weight}kg</span>`:''}
     </div>
     ${allSetsDone
       ? `<button class="btn primary block" style="margin-bottom:16px" data-action="close-sheet-action">${icon('check-circle',15,{valign:'-2px'})} Ejercicio completado — volver a la rutina</button>`
-      : `<div class="holiday-banner" style="background:color-mix(in oklch, var(--strength) 14%, var(--surface));border-color:color-mix(in oklch, var(--strength) 30%, transparent)">
-      ${icon('dumbbell',15,{valign:'-3px'})} No cuentes reps fijas: empuja hasta el <b>fallo técnico</b> (1-2 reps en reserva). Si haces más de ${ex.reps.split('-')[1]||ex.reps}, sube el peso la próxima vez.
+      : `<div class="holiday-banner" style="background:#ac7afb;border-color:#ac7afb;color:#fff">
+      No cuentes reps fijas: empuja hasta el <b>fallo técnico</b> (1-2 reps en reserva). Si haces más de ${ex.reps.split('-')[1]||ex.reps}, sube el peso la próxima vez.
     </div>`}
     ${setsHtml}
     ${history.length>1?`<div class="divider"></div><b style="font-size:13.5px">Progreso de peso</b>${sparkline(history,{unit:'kg',color:'var(--strength)'})}`:''}
     ${altsHtml}
-    <button class="btn ghost block" style="margin-top:14px" data-action="view-ex-history" data-exid="${base.id}">Ver historial completo</button>
+    <button class="btn light block" style="margin-top:14px" data-action="view-ex-history" data-exid="${base.id}">Ver historial completo</button>
   `, {onClose: render});
   $('#curSheet').addEventListener('focusout', (e)=>{
     const input = e.target.closest('[data-role="weight"],[data-role="reps"]');
