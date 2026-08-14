@@ -40,8 +40,8 @@
   /* Activity-ring trio: outer=calorías (coral), middle=proteína (verde), inner=ejercicio (cian) */
   --ring-cal: oklch(0.63 0.22 25);
   --ring-cal-2: oklch(0.74 0.19 40);
-  --ring-protein: oklch(0.80 0.18 130);
-  --ring-protein-2: oklch(0.88 0.16 115);
+  --ring-protein: #95dfd7;
+  --ring-protein-2: color-mix(in oklch, #95dfd7 60%, white);
   --ring-exercise: oklch(0.76 0.13 210);
   --ring-exercise-2: oklch(0.86 0.11 200);
   --radius-s: 12px;
@@ -184,6 +184,7 @@ button{ font-family: inherit; }
 .btn.primary{ background: var(--strength); color: var(--strength-ink); box-shadow: 0 10px 22px -10px color-mix(in oklch, var(--strength) 65%, transparent); }
 .btn.nutrition{ background: var(--nutrition); color: var(--nutrition-ink); box-shadow: 0 10px 22px -10px color-mix(in oklch, var(--nutrition) 55%, transparent); }
 .btn.sleep{ background: var(--sleep); color: var(--sleep-ink); box-shadow: 0 10px 22px -10px color-mix(in oklch, var(--sleep) 55%, transparent); }
+.btn.light{ background:#fff; color:#0a0a0a; box-shadow: 0 10px 22px -10px oklch(0 0 0 / 0.35); }
 .btn.ghost{ background: transparent; border:1.5px solid var(--hairline); box-shadow:none; }
 .btn.block{ width:100%; }
 .btn.sm{ padding:9px 15px; font-size:13px; border-radius:999px; }
@@ -409,8 +410,8 @@ a.link{ color: var(--strength); font-weight:500; text-decoration:none; }
       <span id="dateLabel">&nbsp;</span>
     </div>
     <div class="badges">
-      <button class="pill streak" data-action="nav" data-tab="progreso"><span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px"><path d="M12 2c1 3-3 4-3 8a3 3 0 0 0 6 0c0-1-1-2-1-3 2 1 3 3 3 5a5 5 0 0 1-10 0c0-4 3-6 5-10z"/></svg></span><span id="streakCount">0</span></button>
-      <button class="pill level" data-action="nav" data-tab="progreso"><span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px"><path d="M12 2.5l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.9 5.8 20.8l1.6-6.8-5.2-4.6 6.9-.6z"/></svg></span><span id="levelLabel">Nv 1</span></button>
+      <button class="pill streak" data-action="open-streak-info"><span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px"><path d="M12 2c1 3-3 4-3 8a3 3 0 0 0 6 0c0-1-1-2-1-3 2 1 3 3 3 5a5 5 0 0 1-10 0c0-4 3-6 5-10z"/></svg></span><span id="streakCount">0</span></button>
+      <button class="pill level" data-action="open-level-info"><span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px"><path d="M12 2.5l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.9 5.8 20.8l1.6-6.8-5.2-4.6 6.9-.6z"/></svg></span><span id="levelLabel">Nv 1</span></button>
       <button class="icon-btn" data-action="open-calendar" aria-label="Calendario">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
       </button>
@@ -701,14 +702,23 @@ function ring(pct, {size=64, stroke=6, color='var(--strength)', label='', sub=''
       <circle class="ring-fill enter" cx="${size/2}" cy="${size/2}" r="${r}" stroke-width="${stroke}" stroke="url(#${gid})" stroke-dasharray="${c}" stroke-dashoffset="${c}" data-target="${off}"/>
       ${over?`<circle class="ring-fill enter" cx="${size/2}" cy="${size/2}" r="${r*0.72}" stroke-width="${stroke*0.55}" stroke-linecap="round" stroke="url(#${gid2})" stroke-dasharray="${2*Math.PI*r*0.72}" stroke-dashoffset="${2*Math.PI*r*0.72}" data-target="${2*Math.PI*r*0.72 - (overFraction||0.03)*2*Math.PI*r*0.72}" opacity=".95"/>`:''}
     </svg>
-    <div class="ring-label"><b style="font-size:${size*0.22}px;font-weight:500;letter-spacing:-0.01em;display:block;margin-bottom:${size*0.03}px">${label}</b>${sub?`<span style="font-size:${size*0.12}px;letter-spacing:.01em;color:var(--ink-muted)">${sub}</span>`:''}${over?`<span style="display:block;font-size:${size*0.12}px;font-weight:500;letter-spacing:.01em;color:${color}">${extraLaps>0?`+${extraLaps+1}× meta`:`+${Math.round((pct-1)*100)}%`}</span>`:(overLabel?`<span style="display:block;font-size:${size*0.13}px;font-weight:500;letter-spacing:.01em;color:var(--danger)">${overLabel}</span>`:'')}</div>
+    <div class="ring-label"><b style="font-size:${size*0.19}px;font-weight:500;letter-spacing:-0.01em;display:block;margin-bottom:${size*0.03}px">${label}</b>${sub?`<span style="font-size:${size*0.12}px;letter-spacing:.01em;color:var(--ink-muted)">${sub}</span>`:''}${over?`<span style="display:block;font-size:${size*0.12}px;font-weight:500;letter-spacing:.01em;color:${color}">${extraLaps>0?`+${extraLaps+1}× meta`:`+${Math.round((pct-1)*100)}%`}</span>`:(overLabel?`<span style="display:block;font-size:${size*0.13}px;font-weight:500;letter-spacing:.01em;color:var(--danger)">${overLabel}</span>`:'')}</div>
   </div>`;
 }
+let ringObserver = null;
 function animateRingsIn(){
+  if(ringObserver) ringObserver.disconnect();
+  ringObserver = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      const el = entry.target;
+      if(entry.isIntersecting) el.style.strokeDashoffset = el.dataset.target;
+      else el.style.strokeDashoffset = el.getAttribute('stroke-dasharray');
+    });
+  }, {threshold:0.25});
   requestAnimationFrame(()=>{
-    $all('.ring-fill.enter').forEach(el=>{
-      el.classList.remove('enter');
-      el.style.strokeDashoffset = el.dataset.target;
+    $all('.ring-fill').forEach(el=>{
+      el.style.strokeDashoffset = el.getAttribute('stroke-dasharray');
+      ringObserver.observe(el);
     });
   });
 }
@@ -2619,13 +2629,14 @@ function buildTrainingSessionCard(){
       <b style="font-size:13px">~${bt.trainingKcalPlan} kcal</b>
     </div>` : '';
     planCard = `<div class="card">
-      <div class="row between"><span class="tag ${tagClass}">Día ${sched.day} · Gimnasio</span>${doneToday?`<span class="tag" style="background:color-mix(in oklch, var(--success) 22%, var(--surface));color:var(--success)">Completado ✓</span>`:''}</div>
-      <h3 style="font-size:20px;font-weight:500;margin-top:10px">${sched.label}</h3>
+      <div class="row between"><span class="faint">Entrenamiento de hoy</span>${doneToday?`<span class="tag" style="background:color-mix(in oklch, var(--success) 22%, var(--surface));color:var(--success)">Completado ✓</span>`:''}</div>
+      <h3 style="font-size:20px;font-weight:500;margin-top:4px">${sched.label}</h3>
+      <span class="faint">Día ${sched.day} · Gimnasio</span>
       ${sessionKcalHtml}
       ${muscleMap(sched.type==='cardio'?[]:[...new Set(exercisesForDay(sched.day).flatMap(e=>e.muscles))])}
       ${(sched.type==='gym' && !sched.inProgress) ? `<div class="row" style="gap:10px;margin-top:4px">
         <button class="btn primary" style="flex:1" data-action="go-workout" data-day="${sched.day}" data-mode="full">Completo</button>
-        <button class="btn ghost" style="flex:1" data-action="go-workout" data-day="${sched.day}" data-mode="short">Corto</button>
+        <button class="btn light" style="flex:1" data-action="go-workout" data-day="${sched.day}" data-mode="short">Corto</button>
       </div>` : `<button class="btn primary block" data-action="go-workout" data-day="${sched.day}">${doneToday?'Ver sesión':'Continuar sesión'}</button>`}
       ${cardioTips}
       ${!sched.inProgress?`<button class="btn ghost block" style="margin-top:8px" data-action="open-swap-day">Cambiar día de entrenamiento</button>
@@ -2647,8 +2658,6 @@ function renderHoy(){
   const mealSums = (nut.meals||[]).reduce((a,m)=>({kcal:a.kcal+m.kcal,p:a.p+m.p,c:a.c+m.c,f:a.f+m.f}),{kcal:0,p:0,c:0,f:0});
   const extraSumsToday = extrasForDate(iso).reduce((a,e)=>({kcal:a.kcal+(e.kcal||0),p:a.p+(e.protein||0),c:a.c+(e.carbs||0),f:a.f+(e.fat||0)}),{kcal:0,p:0,c:0,f:0});
   const sums = {kcal:mealSums.kcal+extraSumsToday.kcal, p:mealSums.p+extraSumsToday.p, c:mealSums.c+extraSumsToday.c, f:mealSums.f+extraSumsToday.f};
-  const g = STATE.gamification;
-  const lvl = levelFromXP(g.xp||0);
   const holiday = isHoliday(iso);
 
   const cb = todaysCalorieBalance();
@@ -2691,7 +2700,7 @@ function renderHoy(){
       ${ring(sleepEntry?clamp(sleepHours/sleepGoal,0,1):0, {size:128, stroke:9, color:'var(--sleep)', label: sleepEntry?sleepHours.toFixed(1)+'h':'—', sub:`/ ${sleepGoal}h meta`})}
     </div>
     <p style="font-size:13.5px;margin-top:12px;line-height:1.5" class="muted">${advice.text}</p>
-    <button class="btn sleep block" style="margin-top:12px" data-action="open-sleep-log" data-date="${iso}">${sleepEntry?'Editar registro de sueño':'Registrar sueño de anoche'}</button>
+    <button class="btn light block" style="margin-top:12px" data-action="open-sleep-log" data-date="${iso}">${sleepEntry?'Editar registro de sueño':'Registrar sueño de anoche'}</button>
   </div>`;
 
   const macroCard = `<div class="card">
@@ -2704,14 +2713,6 @@ function renderHoy(){
     <div class="row" style="gap:8px;margin-top:14px">
       ${SUPPLEMENTS.map(s=>`<button class="btn sm ${nut.supplements&&nut.supplements[s.id]?'primary':'ghost'}" style="flex:1" data-action="toggle-supp" data-date="${iso}" data-supp="${s.id}">${icon(s.icon,14,{valign:'-2px'})} ${s.name}</button>`).join('')}
     </div>
-  </div>`;
-
-  const gamifyCard = `<div class="card">
-    <div class="row between">
-      <div class="row" style="gap:10px"><span style="color:var(--gamify)">${icon('star',22,{inline:false})}</span><div class="stat-mini"><b>Nivel ${lvl} · ${LEVEL_NAMES[lvl-1]||''}</b><span>${g.xp||0} XP</span></div></div>
-      <div class="row" style="gap:6px"><span style="color:var(--strength)">${icon('flame',20,{inline:false})}</span><b>${g.streak||0}</b></div>
-    </div>
-    <div class="progress-bar" style="margin-top:10px"><i style="width:${xpForNext(g.xp||0).pct*100}%;background:var(--gamify)"></i></div>
   </div>`;
 
   const balanceCard = `<div class="card">
@@ -2756,7 +2757,6 @@ function renderHoy(){
     ${macroCard}
     ${planCard}
     ${sleepCard}
-    ${gamifyCard}
   </div>`;
 }
 
@@ -2843,7 +2843,7 @@ function openSplitDayDetail(day){
     <div style="margin-top:4px">${rows}</div>
     <div class="row" style="gap:10px;margin-top:16px">
       <button class="btn primary" style="flex:1" data-action="go-workout" data-day="${day}" data-mode="full">Empezar completo</button>
-      <button class="btn ghost" style="flex:1" data-action="go-workout" data-day="${day}" data-mode="short">Corto</button>
+      <button class="btn light" style="flex:1" data-action="go-workout" data-day="${day}" data-mode="short">Corto</button>
     </div>
   `);
 }
@@ -2865,6 +2865,33 @@ function openRestDayInfo(){
       ${ring(1, {color:'var(--ring-protein)', label:restMacros.p+'g', sub:'proteína'})}
       ${ring(1, {color:'var(--gamify)', label:restMacros.c+'g', sub:'carbos'})}
     </div>
+    <button class="btn ghost block" style="margin-top:16px" data-action="close-sheet-action">Cerrar</button>
+  `);
+}
+
+function openLevelInfo(){
+  const g = STATE.gamification;
+  const lvl = levelFromXP(g.xp||0);
+  const next = xpForNext(g.xp||0);
+  const xpToGo = Math.max(0, next.next - (g.xp||0));
+  openSheet(`
+    <h3>${icon('star',18,{valign:'-3px'})} Nivel ${lvl} · ${LEVEL_NAMES[lvl-1]||''}</h3>
+    <p class="faint" style="margin-top:6px">${g.xp||0} XP acumulados</p>
+    <div class="progress-bar" style="margin-top:14px"><i style="width:${next.pct*100}%;background:var(--gamify)"></i></div>
+    <p class="faint" style="margin-top:8px">${lvl<LEVEL_NAMES.length ? `Te faltan ${xpToGo} XP para llegar a Nivel ${lvl+1} · ${LEVEL_NAMES[lvl]||''}` : 'Estás en el nivel máximo'}</p>
+    <div class="divider" style="margin:14px 0"></div>
+    <p style="font-size:13.5px;line-height:1.6" class="muted">Ganas XP registrando entrenamientos, comidas, sueño y agua cada día. Entre más constante seas, más rápido subes de nivel.</p>
+    <button class="btn ghost block" style="margin-top:16px" data-action="close-sheet-action">Cerrar</button>
+  `);
+}
+
+function openStreakInfo(){
+  const g = STATE.gamification;
+  openSheet(`
+    <h3>${icon('flame',18,{valign:'-3px'})} Racha de ${g.streak||0} ${g.streak===1?'día':'días'}</h3>
+    <p class="faint" style="margin-top:6px">Días seguidos usando la app y registrando actividad.</p>
+    <div class="divider" style="margin:14px 0"></div>
+    <p style="font-size:13.5px;line-height:1.6" class="muted">La racha sube cada día que abres la app y registras algo (entreno, comida, sueño o agua). Si te saltas un día completo, la racha se reinicia — mantenerla constante es lo que más te ayuda a construir el hábito.</p>
     <button class="btn ghost block" style="margin-top:16px" data-action="close-sheet-action">Cerrar</button>
   `);
 }
@@ -3359,7 +3386,7 @@ function renderNutricion(){
         <p style="font-size:13.5px;margin-top:4px">${dish.name}</p>
         <p class="faint" style="margin-top:2px">${dish.desc} · ${dish.kcal} kcal · P${dish.p} C${dish.c} G${dish.f}</p>
         ${!logged?`<div class="row" style="gap:8px;margin-top:8px">
-          <button class="btn nutrition sm" style="flex:1" data-action="log-plan-meal" data-slot="${slot.id}">Comí esto</button>
+          <button class="btn primary sm" style="flex:1" data-action="log-plan-meal" data-slot="${slot.id}">Comí esto</button>
           <button class="btn ghost sm" style="flex:1" data-action="open-plan-alt" data-slot="${slot.id}">Comí otra cosa</button>
         </div>`:''}`;
     }).join('')}
@@ -3417,8 +3444,8 @@ function renderNutricion(){
     <div class="card">
       <div class="row between"><b style="font-size:15px">Registrar comida</b><a class="link faint" data-action="open-extras-trends">Tendencias de antojos</a></div>
       <div class="row" style="gap:8px;margin-top:10px">
-        <button class="btn nutrition" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
-        <button class="btn ghost" style="flex:1" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Ingresar manualmente</button>
+        <button class="btn light" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
+        <button class="btn ghost" style="flex:1" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Manualmente</button>
       </div>
       <button class="btn ghost block" style="margin-top:8px" data-action="open-extras-add">${icon('target',15,{valign:'-3px'})} Antojo, snack o alcohol</button>
       ${todayExtras.length?`<div class="grid3" style="margin-top:12px">
@@ -3426,7 +3453,6 @@ function renderNutricion(){
         <div class="stat-mini"><b>${todayExtras.length}</b><span>registros hoy</span></div>
         <div class="stat-mini"><b>${alcoholToday.length}</b><span>bebidas alcohol.</span></div>
       </div>`:''}
-      <a class="link faint" data-action="open-extras-goals" style="display:block;margin-top:10px">Mis metas de antojos</a>
     </div>
 
     <div class="card flush">
@@ -3441,7 +3467,7 @@ function renderNutricion(){
 
     <div class="card">
       <div class="row between"><b style="font-size:15px">${icon('droplet',15,{valign:'-3px'})} Hidratación</b><span class="faint">${waterGlasses} / ${STATE.profile.waterGoalGlasses||8} vasos hoy</span></div>
-      <button class="btn sleep block" style="margin-top:10px" data-action="log-water">+ Agregar vaso de agua</button>
+      <button class="btn light block" style="margin-top:10px" data-action="log-water">+ Agregar vaso de agua</button>
     </div>
 
     <div class="card">
@@ -3659,7 +3685,7 @@ function confirmEstimate(){
 
 function openFoodPhoto(){
   openSheet(`
-    <h3>Ingresar manualmente</h3>
+    <h3>Manualmente</h3>
     ${loggingDateNote()}
     <p class="faint">Escribe las macros de tu plato si ya las conoces (de una etiqueta, otra app, o porque las calculaste tú). Adjuntar una foto de referencia es opcional.</p>
     <label class="field"><span>Nombre del plato</span><input type="text" id="photoMealName" placeholder="Ej: Almuerzo"></label>
@@ -3721,8 +3747,8 @@ function openLogMealForDay(date){
     <h3>Registrar comida de ${fmtDateShort(date)}</h3>
     <p class="faint">Se guardará como consumo de ese día, no de hoy.</p>
     <div class="row" style="gap:10px;margin-top:14px">
-      <button class="btn nutrition" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
-      <button class="btn ghost" style="flex:1" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Ingresar manualmente</button>
+      <button class="btn light" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
+      <button class="btn ghost" style="flex:1" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Manualmente</button>
     </div>
   `);
 }
@@ -3821,8 +3847,8 @@ function openPlanAlternative(slotId){
     <p class="faint">Regístralo y lo diferenciamos de tu plan habitual.</p>
     ${savedForSlot.length ? `<button class="btn nutrition block" style="margin-top:10px" data-action="open-recipe-picker" data-slot="${slotId}">${icon('utensils',15,{valign:'-3px'})} Elegir receta guardada</button>` : ''}
     <div class="row" style="gap:8px;margin-top:10px">
-      <button class="btn ${savedForSlot.length?'ghost':'nutrition'}" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
-      <button class="btn ghost" style="flex:1" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Ingresar manualmente</button>
+      <button class="btn ${savedForSlot.length?'ghost':'light'}" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
+      <button class="btn ghost" style="flex:1" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Manualmente</button>
     </div>
   `);
 }
@@ -4907,7 +4933,7 @@ function openSleepLog(date){
       <label class="field"><span>Horas</span><input type="number" id="sTotalH" value="${v.h}" min="0"></label>
       <label class="field"><span>Minutos</span><input type="number" id="sTotalM" value="${v.m}" min="0" max="59"></label>
     </div>
-    <button class="btn sleep block" style="margin-top:16px" data-action="confirm-sleep" data-date="${date}">Guardar sueño</button>
+    <button class="btn light block" style="margin-top:16px" data-action="confirm-sleep" data-date="${date}">Guardar sueño</button>
     ${STATE.sleep[date] ? `<button class="btn ghost block" style="margin-top:8px;color:var(--danger)" data-action="delete-sleep-log" data-date="${date}">Borrar registro</button>` : ''}
   `);
 }
@@ -5388,7 +5414,7 @@ function openHistoryDayPeek(date){
     <button class="btn nutrition" style="flex:1" data-action="log-meal-for-day" data-date="${date}">Registrar comida</button>
     <button class="btn strength" style="flex:1" data-action="log-workout-for-day" data-date="${date}">${hist?'Editar':'Registrar'} entreno</button>
   </div>
-  <button class="btn sleep block" style="margin-top:8px" data-action="open-sleep-log" data-date="${date}">${status.sleepEntry?'Editar':'Registrar'} sueño de este día</button>
+  <button class="btn light block" style="margin-top:8px" data-action="open-sleep-log" data-date="${date}">${status.sleepEntry?'Editar':'Registrar'} sueño de este día</button>
   ${hist?`<button class="btn ghost block" style="margin-top:8px;color:var(--danger)" data-action="delete-workout-log" data-date="${date}">Borrar entrenamiento de este día</button>`:''}` : '';
   openSheet(`<h3>${fmtDateLong(date)}</h3>${body}${goalsHtml}${editHtml}${isToday?`<button class="btn primary block" style="margin-top:14px" data-action="nav" data-tab="hoy">Ir a Hoy</button>`:''}`);
 }
@@ -5532,6 +5558,8 @@ document.addEventListener('click', (e)=>{
     case 'open-swap-day': openSwapDaySheet(); break;
     case 'pick-swap-day': pickSwapDay(parseInt(el.dataset.day)); break;
     case 'open-rest-day-info': openRestDayInfo(); break;
+    case 'open-level-info': openLevelInfo(); break;
+    case 'open-streak-info': openStreakInfo(); break;
     case 'view-split-day': openSplitDayDetail(parseInt(el.dataset.day)); break;
     case 'open-calendar': openCalendar(); break;
     case 'cal-prev-month': shiftCalendarMonth(-1); break;
