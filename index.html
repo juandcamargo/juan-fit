@@ -889,13 +889,6 @@ function exIllustration(exId){
   if(EX_PHOTO[exId]) return `<img src="${EX_PHOTO[exId]}" alt="" style="width:100%;height:100%;object-fit:contain" loading="lazy">`;
   return EX_ILLUS[EX_PATTERN[exId]] || EQUIP_ICON.body;
 }
-/* Relación alto/ancho real de las fotos de ejercicio recortadas (ver press_banca.webp).
-   Las miniaturas usan esta proporción en vez de forzar un cuadrado cuando el ejercicio tiene foto. */
-const EX_PHOTO_RATIO = 366/513;
-function exThumbBox(exId, size){
-  const h = EX_PHOTO[exId] ? Math.round(size*EX_PHOTO_RATIO) : size;
-  return `width:${size}px;height:${h}px`;
-}
 
 /* ---- Line-icon set (lineicons-inspired: thin stroke, 24x24, no fill) replacing all emoji glyphs ---- */
 const ICON_PATHS = {
@@ -2874,9 +2867,7 @@ function openSplitDayDetail(day){
   const rows = exs.map(ex=>{
     const best = bestSetForExercise(ex.id);
     return `<div class="food-item">
-      <div class="row" style="gap:10px"><div class="ex-thumb" style="${exThumbBox(ex.id,38)}">${exIllustration(ex.id)}</div>
-        <div><b style="font-size:13.5px">${ex.name}</b><div class="faint">${ex.sets}x${ex.reps}</div></div>
-      </div>
+      <div><b style="font-size:13.5px">${ex.name}</b><div class="faint">${ex.sets}x${ex.reps}</div></div>
       ${best?`<span class="tag gamify">${icon('trophy',12,{valign:'-2px'})} ${best.weight}kg</span>`:`<span class="faint" style="font-size:12px">Sin registros</span>`}
     </div>`;
   }).join('');
@@ -3150,7 +3141,6 @@ function renderWorkoutSession(){
     return `<div class="card tight" style="margin-bottom:10px">
       <div class="row between" role="button" tabindex="0" style="cursor:pointer" data-action="open-exercise" data-exid="${ex.id}">
         <div class="row" style="gap:12px">
-          <div class="ex-thumb" style="${exThumbBox(activeEx.id,52)}">${exIllustration(activeEx.id)}</div>
           <div>
             <div class="row" style="gap:6px"><b style="font-size:15px">${activeEx.name}</b>${ex.suggested?'<span class="tag gamify">sugerido</span>':''}</div>
             <div class="faint">${targetSets}x${activeEx.reps} · descanso ${activeEx.rest}s ${best?`· PR ${best.weight}kg`:''}</div>
@@ -3206,7 +3196,7 @@ function openExerciseSheet(exId){
       ${base.alts.map(aid=>{
         const a = EXERCISES[aid];
         return `<div class="swap-option ${swapped===aid?'selected':''}" role="button" tabindex="0" data-action="swap-exercise" data-baseid="${base.id}" data-altid="${aid}">
-          <div class="row" style="gap:10px"><div class="ex-thumb" style="${exThumbBox(a.id,38)}">${exIllustration(a.id)}</div><b style="font-size:13.5px">${a.name}</b></div>
+          <b style="font-size:13.5px">${a.name}</b>
           <span class="faint">${a.sets}x${a.reps}</span>
         </div>`;
       }).join('')}
