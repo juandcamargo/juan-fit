@@ -416,8 +416,6 @@ a.link{ color: var(--strength); font-weight:500; text-decoration:none; }
       <span id="dateLabel">&nbsp;</span>
     </div>
     <div class="badges">
-      <button class="pill streak" data-action="open-streak-info"><span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px"><path d="M12 2c1 3-3 4-3 8a3 3 0 0 0 6 0c0-1-1-2-1-3 2 1 3 3 3 5a5 5 0 0 1-10 0c0-4 3-6 5-10z"/></svg></span><span id="streakCount">0</span></button>
-      <button class="pill level" data-action="open-level-info"><span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-3px"><path d="M12 2.5l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.9 5.8 20.8l1.6-6.8-5.2-4.6 6.9-.6z"/></svg></span><span id="levelLabel">Nv 1</span></button>
       <button class="icon-btn" data-action="open-calendar" aria-label="Calendario">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
       </button>
@@ -1353,6 +1351,12 @@ const MEAL_SLOTS = [
   {id:'almuerzo', name:'Almuerzo'},
   {id:'batido', name:'Batido post-entreno'},
   {id:'cena', name:'Cena'},
+];
+const MANUAL_SLOTS = [
+  {id:'desayuno', name:'Desayuno'},
+  {id:'almuerzo', name:'Almuerzo'},
+  {id:'cena', name:'Cena'},
+  {id:'suplemento', name:'Suplemento'},
 ];
 /* Batido post-entreno: 3 opciones fijas disponibles todos los días (incluidos fines de semana,
    que no tienen plan de comidas configurado). Macros calculadas a partir del scoop real (1 scoop =
@@ -2938,33 +2942,6 @@ function openRestDayInfo(){
   `);
 }
 
-function openLevelInfo(){
-  const g = STATE.gamification;
-  const lvl = levelFromXP(g.xp||0);
-  const next = xpForNext(g.xp||0);
-  const xpToGo = Math.max(0, next.next - (g.xp||0));
-  openSheet(`
-    <h3>${icon('star',18,{valign:'-3px'})} Nivel ${lvl} · ${LEVEL_NAMES[lvl-1]||''}</h3>
-    <p class="faint" style="margin-top:6px">${g.xp||0} XP acumulados</p>
-    <div class="progress-bar" style="margin-top:14px"><i style="width:${next.pct*100}%;background:var(--gamify)"></i></div>
-    <p class="faint" style="margin-top:8px">${lvl<LEVEL_NAMES.length ? `Te faltan ${xpToGo} XP para llegar a Nivel ${lvl+1} · ${LEVEL_NAMES[lvl]||''}` : 'Estás en el nivel máximo'}</p>
-    <div class="divider" style="margin:14px 0"></div>
-    <p style="font-size:13.5px;line-height:1.6" class="muted">Ganas XP registrando entrenamientos, comidas, sueño y agua cada día. Entre más constante seas, más rápido subes de nivel.</p>
-    <button class="btn ghost block" style="margin-top:16px" data-action="close-sheet-action">Cerrar</button>
-  `);
-}
-
-function openStreakInfo(){
-  const g = STATE.gamification;
-  openSheet(`
-    <h3>${icon('flame',18,{valign:'-3px'})} Racha de ${g.streak||0} ${g.streak===1?'día':'días'}</h3>
-    <p class="faint" style="margin-top:6px">Días seguidos usando la app y registrando actividad.</p>
-    <div class="divider" style="margin:14px 0"></div>
-    <p style="font-size:13.5px;line-height:1.6" class="muted">La racha sube cada día que abres la app y registras algo (entreno, comida, sueño o agua). Si te saltas un día completo, la racha se reinicia — mantenerla constante es lo que más te ayuda a construir el hábito.</p>
-    <button class="btn ghost block" style="margin-top:16px" data-action="close-sheet-action">Cerrar</button>
-  `);
-}
-
 let SESSION = null; // active workout session object while training
 function startSession(day, sessionMode='full'){
   closeSheet();
@@ -3293,7 +3270,6 @@ function logSet(exId, baseId, idx){
     openExerciseSheet(exId);
   }
   checkBadges();
-  renderTopbarStats();
 }
 
 function finishSession(){
@@ -3483,7 +3459,7 @@ function renderNutricion(){
 
     <div class="card">
       <b style="font-size:15px">Registrar comida</b>
-      <button class="btn light block" style="margin-top:10px" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Manualmente</button>
+      <button class="btn light block" style="margin-top:10px" data-action="open-food-manual">${icon('pencil',15,{valign:'-3px'})} Manualmente</button>
       <button class="btn ghost block" style="margin-top:8px" data-action="open-extras-add">${icon('target',15,{valign:'-3px'})} Antojo</button>
       ${todayExtras.length?`<div class="grid3" style="margin-top:12px">
         <div class="stat-mini"><b>${extraSums.kcal||0}</b><span>kcal extras (${extrasPct}%)</span></div>
@@ -3500,6 +3476,12 @@ function renderNutricion(){
     <div class="card">
       <div class="row between"><b style="font-size:15px">${icon('droplet',15,{valign:'-3px'})} Hidratación</b><span class="faint">${waterGlasses} / ${STATE.profile.waterGoalGlasses||8} vasos hoy</span></div>
       <button class="btn light block" style="margin-top:10px" data-action="log-water">+ Agregar vaso de agua</button>
+    </div>
+
+    <div class="card">
+      <b style="font-size:15px">Mis recetas</b>
+      <p class="faint" style="margin-top:4px">Platos que has guardado para registrarlos más rápido después.</p>
+      <button class="btn light block" style="margin-top:10px" data-action="open-my-recipes">${icon('layers',15,{valign:'-3px'})} Ver mis recetas</button>
     </div>
 
     <div class="card">
@@ -3715,12 +3697,29 @@ function confirmEstimate(){
   closeSheet(); toast(dateIso===todayISO() ? 'Plato registrado con estimación' : `Plato registrado para ${fmtDateShort(dateIso)}`, {icon:'utensils'}); render();
 }
 
-function openFoodPhoto(){
+function openFoodManualSlotPicker(){
   openSheet(`
     <h3>Manualmente</h3>
     ${loggingDateNote()}
+    <p class="faint">¿Qué tipo de comida vas a registrar?</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+      ${MANUAL_SLOTS.map(s=>`<button class="btn light block" data-action="pick-manual-slot" data-slot="${s.id}">${s.name}</button>`).join('')}
+    </div>
+  `);
+}
+function pickManualSlot(slot){
+  window.__manualSlot = slot;
+  openFoodPhoto();
+}
+function openFoodPhoto(){
+  const activeSlotId = window.__manualSlot || window.__currentPlanSlot;
+  const slotObj = MANUAL_SLOTS.find(s=>s.id===activeSlotId) || MEAL_SLOTS.find(s=>s.id===activeSlotId);
+  openSheet(`
+    <h3>Manualmente${slotObj?' · '+slotObj.name:''}</h3>
+    ${loggingDateNote()}
     <p class="faint">Escribe las macros de tu plato si ya las conoces (de una etiqueta, otra app, o porque las calculaste tú). Adjuntar una foto de referencia es opcional.</p>
     <label class="field"><span>Nombre del plato</span><input type="text" id="photoMealName" placeholder="Ej: Almuerzo"></label>
+    <label class="field"><span>Descripción (opcional)</span><textarea id="photoMealDesc" placeholder="Ej: pechuga a la plancha, arroz y ensalada"></textarea></label>
     <div class="grid3">
       <label class="field"><span>Kcal</span><input type="text" inputmode="decimal" id="pKcal"></label>
       <label class="field"><span>Prot (g)</span><input type="text" inputmode="decimal" id="pP"></label>
@@ -3731,6 +3730,7 @@ function openFoodPhoto(){
     <p class="faint" style="margin-top:2px">Foto de referencia (opcional)</p>
     <input type="file" id="photoInput" accept="image/*" capture="environment">
     <div id="photoPreview" style="margin-top:10px"></div>
+    ${slotObj?`<label class="chk" style="margin-top:12px"><input type="checkbox" id="saveAsRecipe"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span>Guardar como receta para usar después</span></label>`:''}
     <button class="btn nutrition block" style="margin-top:12px" data-action="confirm-photo-meal">Guardar</button>
   `);
   $('#photoInput').addEventListener('change', (e)=>{
@@ -3760,13 +3760,22 @@ function confirmPhotoMeal(){
   const macroKcal = Math.round(p*4 + c*4 + f*9);
   // Fuente única de verdad: si las kcal ingresadas se desvían >5% de lo que dan los macros, usar el valor derivado de los macros
   const kcal = (macroKcal>0 && Math.abs(enteredKcal-macroKcal) > macroKcal*0.05) ? macroKcal : (enteredKcal||macroKcal);
+  const name = $('#photoMealName').value || 'Comida';
+  const descEl = $('#photoMealDesc');
+  const desc = descEl ? descEl.value.trim() : '';
   const meal = {
-    id:uid(), name: $('#photoMealName').value || 'Comida', photo: window.__pendingPhoto||null,
+    id:uid(), name, desc: desc||undefined, photo: window.__pendingPhoto||null,
     kcal, p, c, f
   };
   nut.meals.push(meal);
   window.__pendingPhoto = null;
   consumePlanSlot(nut, meal);
+  if(!meal.slotId && window.__manualSlot) meal.slotId = window.__manualSlot;
+  const saveRecipeEl = $('#saveAsRecipe');
+  if(saveRecipeEl && saveRecipeEl.checked && meal.slotId){
+    STATE.recipes.push({id:uid(), name, slot: meal.slotId, kcal, p, c, f, desc: desc||undefined});
+  }
+  window.__manualSlot = null;
   saveState(); touchStreak(dateIso); addXP(5); checkBadges();
   window.__loggingDate = null;
   closeSheet(); toast(dateIso===todayISO() ? 'Comida guardada' : `Comida guardada para ${fmtDateShort(dateIso)}`, {icon:'camera'}); render();
@@ -3845,6 +3854,38 @@ function openRecipePicker(slotId){
     </div>
     <button class="btn light block" style="margin-top:14px" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Manualmente</button>
   `);
+}
+function openMyRecipes(){
+  const seen = new Set(); const slots = [];
+  MEAL_SLOTS.concat(MANUAL_SLOTS).forEach(s=>{ if(!seen.has(s.id)){ seen.add(s.id); slots.push(s); } });
+  const bySlot = slots.map(slot=>{
+    const items = STATE.recipes.filter(r=>r.slot===slot.id);
+    if(!items.length) return '';
+    return `<div style="margin-top:14px">
+      <b style="font-size:13px;color:var(--text-2)">${slot.name}</b>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+        ${items.map(r=>`
+          <div class="swap-option" style="align-items:flex-start">
+            <div>
+              <b style="font-size:13.5px">${r.name}</b>
+              <div class="faint">${r.kcal} kcal · P${r.p} C${r.c} G${r.f}</div>
+              ${r.desc?`<div class="faint" style="margin-top:2px">${r.desc}</div>`:''}
+            </div>
+            <button class="btn ghost" style="padding:6px 10px" data-action="delete-recipe" data-recipe="${r.id}">${icon('trash',14)}</button>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+  openSheet(`
+    <h3>Mis recetas</h3>
+    ${STATE.recipes.length ? bySlot : `<div class="empty-state" style="margin-top:12px"><span>Aún no tienes recetas guardadas. Guarda una la próxima vez que registres una comida manualmente.</span></div>`}
+  `);
+}
+function deleteRecipe(recipeId){
+  STATE.recipes = STATE.recipes.filter(r=>r.id!==recipeId);
+  saveState();
+  openMyRecipes();
+  toast('Receta eliminada', {icon:'trash'});
 }
 function editMealPlanScreen(){
   const plan = getMealPlan();
@@ -5201,14 +5242,8 @@ function completeOnboarding(){
 /* ============================= CORE: render dispatch, events, init ============================= */
 function updateTopbar(){
   $('#dateLabel').textContent = STATE.onboarded ? fmtDateLong(todayISO()) : ' ';
-  $('#streakCount').textContent = STATE.gamification.streak||0;
-  $('#levelLabel').textContent = 'Nv '+levelFromXP(STATE.gamification.xp||0);
   $('#tabbar').style.display = STATE.onboarded ? 'flex':'none';
   $('.badges').style.visibility = STATE.onboarded ? 'visible':'hidden';
-}
-function renderTopbarStats(){
-  $('#streakCount').textContent = STATE.gamification.streak||0;
-  $('#levelLabel').textContent = 'Nv '+levelFromXP(STATE.gamification.xp||0);
 }
 function updateTabbar(){
   $all('.tab-btn').forEach(btn=> btn.classList.toggle('active', btn.dataset.tab===ACTIVE_TAB));
@@ -5525,8 +5560,6 @@ document.addEventListener('click', (e)=>{
     case 'open-swap-day': openSwapDaySheet(); break;
     case 'pick-swap-day': pickSwapDay(parseInt(el.dataset.day)); break;
     case 'open-rest-day-info': openRestDayInfo(); break;
-    case 'open-level-info': openLevelInfo(); break;
-    case 'open-streak-info': openStreakInfo(); break;
     case 'view-split-day': openSplitDayDetail(parseInt(el.dataset.day)); break;
     case 'open-calendar': openCalendar(); break;
     case 'cal-prev-month': shiftCalendarMonth(-1); break;
@@ -5552,6 +5585,10 @@ document.addEventListener('click', (e)=>{
     case 'open-food-search': openFoodSearch(); break;
     case 'open-food-describe': openFoodDescribe(); break;
     case 'open-food-photo': openFoodPhoto(); break;
+    case 'open-food-manual': openFoodManualSlotPicker(); break;
+    case 'pick-manual-slot': pickManualSlot(el.dataset.slot); break;
+    case 'open-my-recipes': openMyRecipes(); break;
+    case 'delete-recipe': deleteRecipe(el.dataset.recipe); break;
     case 'log-meal-for-day': openLogMealForDay(el.dataset.date); break;
     case 'log-workout-for-day': openLogWorkoutForDay(el.dataset.date); break;
     case 'confirm-workout-for-day': confirmWorkoutForDay(el.dataset.date); break;
