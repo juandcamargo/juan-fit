@@ -2721,7 +2721,7 @@ function buildTrainingSessionCard(){
       <b style="font-size:13px">~${bt.trainingKcalPlan} kcal</b>
     </div>` : '';
     planCard = `<div class="card">
-      <div class="row between"><span class="faint">Entrenamiento de hoy</span>${doneToday?`<span class="tag" style="background:color-mix(in oklch, var(--success) 22%, var(--surface));color:var(--success)">Completado ✓</span>`:''}</div>
+      <div class="row between"><span class="faint">Entrenamiento de hoy</span>${doneToday?`<span class="tag" style="background:#93ded6;color:#0a0a0a">Completado ✓</span>`:''}</div>
       <h3 style="font-size:20px;font-weight:500;margin-top:4px">${sched.label}</h3>
       <span class="faint">Día ${sched.day} · Gimnasio</span>
       ${sessionKcalHtml}
@@ -3452,7 +3452,7 @@ function renderNutricion(){
       if(!dish) return '';
       const logged = nut.planLogged[slot.id];
       return `<div class="divider" style="margin:10px 0"></div>
-        <div class="row between"><b style="font-size:13.5px">${slot.name}</b>${logged?`<span class="row" style="gap:8px"><span class="tag ${logged==='plan'?'strength':''}">${logged==='plan'?'Comiste esto':'Comiste otra cosa'}</span><button data-action="reset-plan-slot" data-slot="${slot.id}" style="font-size:12px;font-weight:500;color:var(--strength);background:none;border:none;padding:0;text-decoration:underline">Deshacer</button></span>`:''}</div>
+        <div class="row between"><b style="font-size:13.5px">${slot.name}</b>${logged?`<span class="row" style="gap:8px"><span class="tag" style="${logged==='plan'?'background:var(--sleep);color:#0a0a0a':''}">${logged==='plan'?'Comiste esto':'Comiste otra cosa'}</span><button data-action="reset-plan-slot" data-slot="${slot.id}" style="font-size:12px;font-weight:500;color:var(--strength);background:none;border:none;padding:0;text-decoration:underline">Deshacer</button></span>`:''}</div>
         <p style="font-size:13.5px;margin-top:4px">${dish.name}</p>
         <p class="faint" style="margin-top:2px">${dish.desc} · ${dish.kcal} kcal · P${dish.p} C${dish.c} G${dish.f}</p>
         ${!logged?`<div class="row" style="gap:8px;margin-top:8px">
