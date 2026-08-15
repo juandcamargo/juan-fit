@@ -2869,7 +2869,7 @@ function renderEntrenoWeek(){
     const log = STATE.workoutLogs.find(w=>w.date===iso);
     const d = parseISO(iso);
     let dotColor = 'var(--surface-3)';
-    if(log) dotColor = log.completed ? 'var(--success)' : 'var(--gamify)';
+    if(log) dotColor = log.completed ? 'var(--ring-protein)' : 'var(--gamify)';
     return `<div class="day-chip ${iso===today?'today':''}" role="button" tabindex="0" data-action="peek-history-day" data-date="${iso}" style="${isFuture?'opacity:.45':''}">
       <small>${DOW_NAMES[d.getDay()].slice(0,3)}</small><b>${d.getDate()}</b>
       <span class="dot" style="background:${isFuture?'transparent':dotColor};${isFuture?'border:1.5px dashed var(--ink-faint)':''}"></span>
@@ -2897,7 +2897,7 @@ function renderEntrenoWeek(){
       const exs = exercisesForDay(day);
       return `<div class="card tight" role="button" tabindex="0" data-action="view-split-day" data-day="${day}" style="cursor:pointer; ${day===upcoming?'border-color:var(--strength)':''}">
         <div class="row between">
-          <div><div class="row" style="gap:8px"><b style="font-size:15px">Día ${day} · ${DAY_ORDER[day]}</b>${day===upcoming?'<span class="tag strength">Siguiente</span>':''}</div><div class="faint" style="margin-top:2px">${exs.length} ejercicios</div></div>
+          <div><div class="row" style="gap:8px"><b style="font-size:15px">Día ${day} · ${DAY_ORDER[day]}</b>${day===upcoming?'<span class="tag" style="background:var(--sleep);color:#fff">Siguiente</span>':''}</div><div class="faint" style="margin-top:2px">${exs.length} ejercicios</div></div>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:var(--ink-faint)"><path d="M9 6l6 6-6 6"/></svg>
         </div>
       </div>`;
@@ -3405,7 +3405,7 @@ function renderNutricion(){
 
   const mealRows = nut.meals.map(m=>{
     const iconName = m.isSupplement ? 'pill' : m.isPlan ? 'check-circle' : 'utensils';
-    const thumbStyle = m.isSupplement ? 'background:color-mix(in oklch, var(--gamify) 18%, var(--surface));color:var(--gamify-ink)' : '';
+    const thumbStyle = m.isSupplement ? 'background:var(--gamify);color:#0a0a0a' : '';
     return `
     <div class="food-item">
       <div class="row" style="gap:10px">
@@ -3452,7 +3452,7 @@ function renderNutricion(){
       if(!dish) return '';
       const logged = nut.planLogged[slot.id];
       return `<div class="divider" style="margin:10px 0"></div>
-        <div class="row between"><b style="font-size:13.5px">${slot.name}</b>${logged?`<span class="row" style="gap:8px"><span class="tag" style="${logged==='plan'?'background:var(--sleep);color:#0a0a0a':''}">${logged==='plan'?'Comiste esto':'Comiste otra cosa'}</span><button data-action="reset-plan-slot" data-slot="${slot.id}" style="font-size:12px;font-weight:500;color:var(--strength);background:none;border:none;padding:0;text-decoration:underline">Deshacer</button></span>`:''}</div>
+        <div class="row between"><b style="font-size:13.5px">${slot.name}</b>${logged?`<span class="row" style="gap:8px"><span class="tag" style="${logged==='plan'?'background:var(--sleep);color:#fff':''}">${logged==='plan'?'Comiste esto':'Comiste otra cosa'}</span><button data-action="reset-plan-slot" data-slot="${slot.id}" style="font-size:12px;font-weight:500;color:var(--strength);background:none;border:none;padding:0;text-decoration:underline">Deshacer</button></span>`:''}</div>
         <p style="font-size:13.5px;margin-top:4px">${dish.name}</p>
         <p class="faint" style="margin-top:2px">${dish.desc} · ${dish.kcal} kcal · P${dish.p} C${dish.c} G${dish.f}</p>
         ${!logged?`<div class="row" style="gap:8px;margin-top:8px">
