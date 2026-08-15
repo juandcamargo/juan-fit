@@ -3484,23 +3484,6 @@ function renderNutricion(){
     </div>`).join('')}` : ''}
   </div>`;
 
-  const recetasCard = `<div class="card">
-    <div class="row between"><b style="font-size:15px">Mis recetas</b><button class="btn ghost sm" data-action="open-save-recipe">${icon('pencil',13,{valign:'-2px'})} Nueva receta</button></div>
-    ${STATE.recipes.length ? MEAL_SLOTS.filter(s=>s.id!=='batido').map(slot=>{
-      const items = STATE.recipes.filter(r=>r.slot===slot.id);
-      if(!items.length) return '';
-      return `<div class="divider" style="margin:10px 0"></div>
-        <b style="font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-muted)">${slot.name}</b>
-        ${items.map(r=>`<div class="food-item" style="margin-top:8px">
-          <div><b style="font-size:13.5px">${r.name}</b><div class="faint">${r.kcal} kcal · P${r.p} C${r.c} G${r.f}</div></div>
-          <div class="row" style="gap:6px">
-            <button class="btn nutrition sm" data-action="log-recipe" data-recipe="${r.id}">Registrar</button>
-            <button class="icon-btn" data-action="delete-recipe" data-recipe="${r.id}" style="width:30px;height:30px">${icon('trash',14)}</button>
-          </div>
-        </div>`).join('')}`;
-    }).join('') : `<p class="faint" style="margin-top:8px">Guarda tus platos habituales para registrarlos rápido cuando comas algo distinto al plan del día.</p>`}
-  </div>`;
-
   $('#view-root').innerHTML = `<div class="view">
     <h2 class="section-title">Nutrición</h2>
     <div class="card">
@@ -3515,15 +3498,10 @@ function renderNutricion(){
       <div style="margin-top:10px;display:flex;flex-direction:column;gap:12px">${suppHtml}</div>
     </div>
 
-    ${recetasCard}
-
     <div class="card">
       <b style="font-size:15px">Registrar comida</b>
-      <div class="row" style="gap:8px;margin-top:10px">
-        <button class="btn light" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
-        <button class="btn ghost" style="flex:1" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Manualmente</button>
-      </div>
-      <button class="btn ghost block" style="margin-top:8px" data-action="open-extras-add">${icon('target',15,{valign:'-3px'})} Antojo, snack o alcohol</button>
+      <button class="btn light block" style="margin-top:10px" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Manualmente</button>
+      <button class="btn ghost block" style="margin-top:8px" data-action="open-extras-add">${icon('target',15,{valign:'-3px'})} Antojo</button>
       ${todayExtras.length?`<div class="grid3" style="margin-top:12px">
         <div class="stat-mini"><b>${extraSums.kcal||0}</b><span>kcal extras (${extrasPct}%)</span></div>
         <div class="stat-mini"><b>${todayExtras.length}</b><span>registros hoy</span></div>
@@ -3843,49 +3821,6 @@ function logPlanMeal(slotId){
   toast('Comida del plan registrada', {icon:'utensils'});
   render();
 }
-function openSaveRecipeSheet(defaultSlot){
-  openSheet(`
-    <h3>Nueva receta</h3>
-    <p class="faint">Guárdala una vez y regístrala rápido cada vez que la comas, aunque no esté en el plan del día.</p>
-    <label class="field"><span>Nombre</span><input type="text" id="recipeName" placeholder="Ej: Bowl de pollo y arroz"></label>
-    <label class="field"><span>Comida</span>
-      <select id="recipeSlot">
-        ${MEAL_SLOTS.filter(s=>s.id!=='batido').map(s=>`<option value="${s.id}" ${s.id===defaultSlot?'selected':''}>${s.name}</option>`).join('')}
-      </select>
-    </label>
-    <div class="grid3">
-      <label class="field"><span>Kcal</span><input type="text" inputmode="decimal" id="recipeKcal"></label>
-      <label class="field"><span>Prot (g)</span><input type="text" inputmode="decimal" id="recipeP"></label>
-      <label class="field"><span>Carbs (g)</span><input type="text" inputmode="decimal" id="recipeC"></label>
-    </div>
-    <label class="field"><span>Grasa (g)</span><input type="text" inputmode="decimal" id="recipeF"></label>
-    <button class="btn nutrition block" style="margin-top:12px" data-action="save-recipe">Guardar receta</button>
-  `);
-}
-function saveRecipe(){
-  const name = $('#recipeName').value.trim();
-  if(!name){ toast('Ponle un nombre a la receta', {icon:'alert-triangle'}); return; }
-  const slot = $('#recipeSlot').value;
-  const kcal = Math.round(parseDecimal($('#recipeKcal').value)||0);
-  const p = round1(parseDecimal($('#recipeP').value)||0);
-  const c = round1(parseDecimal($('#recipeC').value)||0);
-  const f = round1(parseDecimal($('#recipeF').value)||0);
-  if(!kcal){ toast('Ingresa al menos las kcal de la receta', {icon:'alert-triangle'}); return; }
-  STATE.recipes.push({id:uid(), name, slot, kcal, p, c, f});
-  saveState();
-  closeSheet();
-  toast('Receta guardada', {icon:'check-circle'});
-  render();
-}
-function deleteRecipe(id){
-  openConfirmSheet('¿Eliminar esta receta guardada?', ()=>{
-    STATE.recipes = STATE.recipes.filter(r=>r.id!==id);
-    saveState();
-    closeSheet();
-    render();
-    toast('Receta eliminada', {icon:'trash'});
-  });
-}
 function logRecipe(recipeId){
   const r = STATE.recipes.find(x=>x.id===recipeId);
   if(!r) return;
@@ -3918,17 +3853,14 @@ function openRecipePicker(slotId){
   const items = STATE.recipes.filter(r=>r.slot===slotId);
   openSheet(`
     <h3>¿Qué comiste en ${slot.name.toLowerCase()}?</h3>
-    <p class="faint">Elige algo que ya sueles comer, o descríbelo si fue distinto.</p>
+    <p class="faint">Elige algo que ya sueles comer, o añádelo manualmente si fue distinto.</p>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
       ${items.length ? items.map(r=>`
         <div class="swap-option" role="button" tabindex="0" data-action="log-recipe" data-recipe="${r.id}">
           <div><b style="font-size:13.5px">${r.name}</b><div class="faint">${r.kcal} kcal · P${r.p} C${r.c} G${r.f}</div></div>
         </div>`).join('') : `<p class="faint">Aún no tienes recetas guardadas para ${slot.name.toLowerCase()}.</p>`}
     </div>
-    <div class="row" style="gap:8px;margin-top:14px">
-      <button class="btn light" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
-      <button class="btn ghost" style="flex:1" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Manualmente</button>
-    </div>
+    <button class="btn light block" style="margin-top:14px" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Manualmente</button>
   `);
 }
 function editMealPlanScreen(){
@@ -5659,9 +5591,6 @@ document.addEventListener('click', (e)=>{
     case 'log-batido-option': logBatidoOption(el.dataset.batido); break;
     case 'open-plan-alt': openPlanAlternative(el.dataset.slot); break;
     case 'open-recipe-picker': openRecipePicker(el.dataset.slot); break;
-    case 'open-save-recipe': openSaveRecipeSheet(el.dataset.slot); break;
-    case 'save-recipe': saveRecipe(); break;
-    case 'delete-recipe': deleteRecipe(el.dataset.recipe); break;
     case 'log-recipe': logRecipe(el.dataset.recipe); break;
     case 'edit-meal-plan': editMealPlanScreen(); break;
     case 'edit-meal-plan-day': editMealPlanDay(el.dataset.day); break;
