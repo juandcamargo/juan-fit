@@ -1474,7 +1474,7 @@ let supabaseUser = null; // se llena cuando el usuario inicia sesión con el enl
 function defaultState(){
   return {
     onboarded: false,
-    profile: { name:'Juan', sex:'M', age:37, heightCm:175, jobType:'sedentario', dailySteps:4000, bfSource:'navy', goal:'recomp', deficitMode:'fixed', deficitKcal:200, deficitPercent:10, proteinGkgOverride:null, fatPercent:25, dayTypeDistribution:false, nannyDefault:false, sleepGoalHours:7, standardDrinkGrams:14, waterGoalGlasses:8 },
+    profile: { name:'Juan', sex:'M', age:37, heightCm:175, jobType:'sedentario', dailySteps:4000, bfSource:'navy', goal:'recomp', deficitMode:'fixed', deficitKcal:200, deficitPercent:10, proteinGkgOverride:null, fatPercent:25, dayTypeDistribution:false, sleepGoalHours:7, standardDrinkGrams:14, waterGoalGlasses:8 },
     bodyLogs: [], // {date, weightKg, neckCm, waistCm, hipCm, bf, bfManual, leanKg, fatKg, bmr, bmrSecondary, tdee, tdeeLow, tdeeHigh, macros:{kcal,p,c,f}}
     workoutLogs: [], // {id, date, day, homeMode, exercises:{exId:{sets:[{weight,reps,failure}]}}, xpAwarded}
     nutrition: {}, // date -> {meals:[{id,name,kcal,p,c,f,photo}], supplements:{creatina,colageno}, planLogged:{desayuno,almuerzo,batido,cena}}
@@ -2360,10 +2360,7 @@ function scheduleForDate(iso){
     return { type: existingToday.day===3?'cardio':'gym', day: existingToday.day, label: DAY_ORDER[existingToday.day], completed: !!existingToday.completed, inProgress:true };
   }
   const holiday = isHoliday(iso);
-  const dow = parseISO(iso).getDay();
-  const isWeekend = (dow===0 || dow===6);
   const override = STATE.dayOverrides[iso];
-  const hasNanny = override && typeof override.nanny==='boolean' ? override.nanny : STATE.profile.nannyDefault;
   const cycleState = splitCycleStateAsOf(iso);
   const nextDay = cycleState.nextDay;
   const cycleJustFinished = cycleState.cycleJustFinished;
@@ -2376,11 +2373,7 @@ function scheduleForDate(iso){
   if(cycleJustFinished && !forcedTrain){
     return { type:'rest-suggested', day: 7, label:'Descanso', reason:'Completaste tu ciclo de 6 días' };
   }
-  const needsHome = (isWeekend || holiday) && !hasNanny;
-  if(needsHome){
-    return { type:'home', day: nextDay, label: HOME_ROUTINES[nextDay].name, routine: HOME_ROUTINES[nextDay], reason: holiday?`Festivo (${holiday}) sin niñera`:'Fin de semana sin niñera' };
-  }
-  return { type: nextDay===3?'cardio':'gym', day: nextDay, label: DAY_ORDER[nextDay], reason: holiday?`Festivo: ${holiday} — tienes niñera hoy`:null };
+  return { type: nextDay===3?'cardio':'gym', day: nextDay, label: DAY_ORDER[nextDay], reason: holiday?`Festivo: ${holiday}`:null };
 }
 function scheduleForToday(){ return scheduleForDate(todayISO());
 }
@@ -2686,19 +2679,6 @@ function buildTrainingSessionCard(){
       </ul>
       <button class="btn ghost block" style="margin-top:8px" data-action="skip-rest-today">Entrenar Día ${nextUp} de todas formas</button>
     </div>`;
-  } else if(sched.type==='home'){
-    planCard = `<div class="card">
-      <div class="row between"><span class="tag gamify">${icon('home',13,{valign:'-2px'})} Rutina en casa</span><span class="faint">${sched.routine.mins} min</span></div>
-      <h3 style="font-size:20px;font-weight:500;margin-top:10px">${sched.routine.name}</h3>
-      <p class="section-sub" style="margin-top:4px">${sched.reason} — corta pero efectiva, sin equipo de gimnasio.</p>
-      <ul style="margin:10px 0 14px;padding-left:18px;font-size:14px;line-height:1.6">${sched.routine.items.map(i=>`<li>${i}</li>`).join('')}</ul>
-      <div class="row" style="gap:10px">
-        <button class="btn primary block" data-action="start-home" data-day="${sched.day}">Empezar rutina en casa</button>
-      </div>
-      <button class="btn ghost block" style="margin-top:8px" data-action="toggle-nanny" data-date="${iso}">¿Hoy sí tienes niñera? Ir al gym en su lugar</button>
-      <button class="btn ghost block" style="margin-top:8px" data-action="open-swap-day">Cambiar día de entrenamiento</button>
-      <button class="btn ghost block" style="margin-top:8px" data-action="mark-rest-today">No puedo entrenar hoy — marcar como descanso</button>
-    </div>`;
   } else {
     const tagClass = sched.type==='cardio' ? 'sleep' : 'strength';
     const doneToday = sched.completed;
@@ -2929,7 +2909,6 @@ function openSplitDayDetail(day){
   }).join('');
   openSheet(`
     <h3>Día ${day} · ${DAY_ORDER[day]}</h3>
-    ${muscleMap([...new Set(exs.flatMap(e=>e.muscles))])}
     <div style="margin-top:4px">${rows}</div>
     <div class="row" style="gap:10px;margin-top:16px">
       <button class="btn primary" style="flex:1" data-action="go-workout" data-day="${day}" data-mode="full">Empezar completo</button>
@@ -2994,6 +2973,15 @@ function startSession(day, sessionMode='full'){
   if(!existing){
     existing = {id:uid(), date:iso, day, mode:sessionMode, homeMode: sessionMode==='home', exercises:{}, phase: day===3?undefined:'warmup', completed:false};
     STATE.workoutLogs.push(existing);
+    saveState();
+  } else if(existing.day!==day){
+    // El usuario eligió explícitamente un día distinto al que ya tenía en curso hoy — cambiamos la sesión al día nuevo en vez de reanudar la vieja.
+    existing.day = day;
+    existing.mode = sessionMode;
+    existing.homeMode = sessionMode==='home';
+    existing.exercises = {};
+    existing.phase = day===3?undefined:'warmup';
+    existing.completed = false;
     saveState();
   }
   SESSION = existing;
@@ -3325,10 +3313,6 @@ function finishSession(){
   render();
 }
 
-function startHomeRoutine(day){
-  startSession(day, 'home');
-}
-
 function openSwapDaySheet(){
   const sched = scheduleForToday();
   const currentDay = sched.day;
@@ -3343,11 +3327,8 @@ function openSwapDaySheet(){
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">${rows}</div>`);
 }
 function pickSwapDay(day){
-  const sched = scheduleForToday();
-  const isHome = sched.type==='home';
   closeSheet();
-  if(isHome) startHomeRoutine(day);
-  else startSession(day, 'full');
+  startSession(day, 'full');
 }
 
 function renderExerciseHistory(exId){
@@ -3367,7 +3348,9 @@ function renderExerciseHistory(exId){
       <button class="icon-btn" data-action="back-to-week"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
       <h2 class="section-title" style="margin:0">${ex.name}</h2>
     </div>
-    ${muscleMap(ex.muscles)}
+    <div class="card tight" style="display:flex;align-items:center;justify-content:center;padding:18px;margin-bottom:12px">
+      <div style="width:100%;max-width:300px;color:var(--strength)">${exIllustration(ex.id)}</div>
+    </div>
     <div class="card"><b style="font-size:14px">Progreso de peso máximo</b>${sparkline(points,{unit:'kg'})}</div>
     <h3 class="section-title" style="font-size:16px">Historial de series</h3>
     <div class="card flush">
@@ -4994,7 +4977,6 @@ function renderPerfil(){
         <label class="field"><span>% de grasa de las calorías</span><input type="text" id="pfFatPercent" inputmode="decimal" value="${p.fatPercent||25}"></label>
       </div>
       <label class="chk"><input type="checkbox" id="pfDayType" ${p.dayTypeDistribution?'checked':''}><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span>Distribuir calorías por tipo de día (más en fuerza, menos en descanso) en vez de meta fija</span></label>
-      <label class="chk"><input type="checkbox" id="pfNanny" ${p.nannyDefault?'checked':''}><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span>Por defecto sí tengo niñera fines de semana</span></label>
       <button class="btn primary block" style="margin-top:14px" data-action="save-profile">Guardar perfil</button>
     </div>
 
@@ -5090,7 +5072,6 @@ function saveProfile(){
   STATE.profile.proteinGkgOverride = proteinGkg||null;
   STATE.profile.fatPercent = clamp(parseDecimal($('#pfFatPercent').value)||25, 20, 30);
   STATE.profile.dayTypeDistribution = $('#pfDayType').checked;
-  STATE.profile.nannyDefault = $('#pfNanny').checked;
   if(STATE.bodyLogs.length){ recomputeFromLog(STATE.bodyLogs[STATE.bodyLogs.length-1]); }
   saveState();
   toast('Perfil actualizado', {icon:'check-circle'});
@@ -5159,7 +5140,6 @@ function renderOnboarding(){
         </select>
       </label>
       <label class="field"><span>Pasos promedio al día</span><input type="text" id="obSteps" inputmode="decimal" value="4000"></label>
-      <label class="chk"><input type="checkbox" id="obNanny"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span>Tengo niñera disponible fines de semana</span></label>
       <button class="btn primary block" style="margin-top:14px" data-action="complete-onboarding">Calcular mis macros y empezar</button>
     </div>
   </div>`;
@@ -5199,7 +5179,6 @@ function completeOnboarding(){
     bfSource: clinical?'clinical':'navy', goal,
     deficitMode: defaults.deficitMode, deficitKcal: defaults.deficitKcal, deficitPercent: defaults.deficitPercent,
     proteinGkgOverride: null, fatPercent: 25, dayTypeDistribution: false,
-    nannyDefault: $('#obNanny').checked,
     sleepGoalHours:7, standardDrinkGrams:14, waterGoalGlasses:8,
   };
   let entry = {date:todayISO(), weightKg, neckCm, waistCm, hipCm, bf, bfManual};
@@ -5494,14 +5473,6 @@ function confirmWorkoutForDay(date){
   render();
 }
 
-function toggleNannyOverride(date){
-  const cur = STATE.dayOverrides[date]||{};
-  const curVal = typeof cur.nanny==='boolean' ? cur.nanny : STATE.profile.nannyDefault;
-  STATE.dayOverrides[date] = {...cur, nanny: !curVal};
-  saveState();
-  toast(!curVal ? 'Hoy sí tienes niñera — plan de gimnasio activado' : 'Hoy sin niñera — plan en casa activado', {icon:'baby'});
-  render();
-}
 function skipRestToday(){
   const iso = todayISO();
   STATE.dayOverrides[iso] = {...(STATE.dayOverrides[iso]||{}), rest:false};
@@ -5548,8 +5519,6 @@ document.addEventListener('click', (e)=>{
       window.scrollTo({top:0, behavior:'instant'});
       break;
     }
-    case 'start-home': startHomeRoutine(parseInt(el.dataset.day)); break;
-    case 'toggle-nanny': toggleNannyOverride(el.dataset.date); break;
     case 'go-workout': startSession(parseInt(el.dataset.day), el.dataset.mode||'full'); break;
     case 'skip-rest-today': skipRestToday(); break;
     case 'mark-rest-today': markTodayAsRest(); break;
