@@ -2591,8 +2591,7 @@ function buildTrainingSessionCard(){
     const isManualRest = sched.reason==='Marcaste hoy como descanso';
     const nextUp = nextSplitDay();
     planCard = `<div class="card">
-      <div class="row between"><span class="tag sleep">${icon('wave',13,{valign:'-2px'})} ${isManualRest?'Descanso':'Descanso sugerido'}</span></div>
-      <h3 style="font-size:20px;font-weight:500;margin-top:10px">${isManualRest?'Hoy marcaste descanso':'Completaste tu ciclo de 6 días'}</h3>
+      <h3 style="font-size:20px;font-weight:500">${isManualRest?'Hoy marcaste descanso':'Completaste tu ciclo de 6 días'}</h3>
       <p class="section-sub" style="margin-top:6px">${isManualRest?`Sin problema — le avisamos a la app. Tu nutrición de hoy se ajusta y el Día ${nextUp} te espera cuando vuelvas.`:'Un día de descanso ahora te deja fresco para arrancar el Día 1 con más fuerza. Si prefieres seguir de una, puedes entrenar igual.'}</p>
       ${dayPhotoImg(7)}
       <div class="divider" style="margin:12px 0"></div>
