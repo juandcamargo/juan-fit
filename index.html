@@ -2351,7 +2351,8 @@ function weeklyNutritionSummary(anchorISO=todayISO()){
 function recoveryScore(sleepEntry){
   if(!sleepEntry) return null;
   const hours = sleepEntry.totalMin/60;
-  let score = 100 - Math.abs(7.8-hours)*16;
+  const goal = STATE.profile.sleepGoalHours || 7;
+  let score = hours>=goal ? 100 : 100 - (goal-hours)*16;
   if(sleepEntry.awake > 60) score -= 8;
   score = clamp(Math.round(score), 15, 100);
   return score;
