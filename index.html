@@ -329,14 +329,6 @@ button.tag:active{ transform:scale(0.93); }
 .toast.out{ animation: toastOut .3s var(--ease-in) forwards; }
 @keyframes toastOut{ to{ opacity:0; transform:translateY(-10px) scale(0.96);} }
 
-.muscle-map{ display:flex; gap:18px; justify-content:center; padding: 8px 0; }
-.muscle-map svg{ width:112px; height:168px; }
-.mm-part{ fill: url(#mmInactiveGrad); transition: fill .4s var(--ease); }
-.mm-part.active{ fill: url(#mmActiveGrad); }
-.mm-outline{ fill:none; stroke: var(--ink-faint); stroke-width:1.4; opacity:.55; stroke-linejoin:round; }
-.mm-line{ fill:none; stroke: var(--ink-faint); stroke-width:.8; opacity:.3; stroke-linecap:round; }
-.mm-skin{ fill: color-mix(in oklch, var(--surface-2) 60%, transparent); }
-
 .badge-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; }
 .badge-item{ display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; padding:10px 4px; border-radius:18px; background:var(--surface-2); border:1px solid var(--hairline); transition: transform .2s var(--ease-spring); }
 .badge-item:active{ transform:scale(0.94); }
@@ -749,76 +741,6 @@ const HOLIDAYS_CO = {
   "2027-12-08":"Inmaculada Concepción", "2027-12-25":"Navidad"
 };
 function isHoliday(iso){ return HOLIDAYS_CO[iso] || null; }
-
-/* ---- Muscle map SVG (front + back schematic) ---- */
-function muscleMap(active=[]){
-  const on = (k)=> active.includes(k) ? ' active' : '';
-  const body = `
-    <path class="mm-skin" d="M26,30 C22,38 21,46 23,54 C25,64 28,72 32,80 C33,84 34,88 35,92 L65,92 C66,88 67,84 68,80 C72,72 75,64 77,54 C79,46 78,38 74,30 C68,22 58,18 50,18 C42,18 32,22 26,30 Z"/>
-    <path class="mm-skin" d="M24,32 C18,42 15,54 15,66 C15,78 16,88 18,97 L27,97 C26,87 25,77 25,66 C25,54 27,44 32,34 Z"/>
-    <path class="mm-skin" d="M76,32 C82,42 85,54 85,66 C85,78 84,88 82,97 L73,97 C74,87 75,77 75,66 C75,54 73,44 68,34 Z"/>
-    <path class="mm-skin" d="M35,92 C33,102 32,114 33,126 C34,136 35,142 36,148 L47,148 C47,140 47,130 47,120 C47,108 47,98 48,92 Z"/>
-    <path class="mm-skin" d="M65,92 C67,102 68,114 67,126 C66,136 65,142 64,148 L53,148 C53,140 53,130 53,120 C53,108 53,98 52,92 Z"/>
-    <ellipse class="mm-outline" cx="50" cy="13" rx="9" ry="10"/>
-    <path class="mm-outline" d="M45,20 L55,20 L53,25 L47,25 Z"/>
-    <path class="mm-outline" d="M26,30 C22,38 21,46 23,54 C25,64 28,72 32,80 C33,84 34,88 35,92 L65,92 C66,88 67,84 68,80 C72,72 75,64 77,54 C79,46 78,38 74,30 C68,22 58,18 50,18 C42,18 32,22 26,30 Z"/>
-    <path class="mm-outline" d="M24,32 C18,42 15,54 15,66 C15,78 16,88 18,97 L27,97 C26,87 25,77 25,66 C25,54 27,44 32,34"/>
-    <path class="mm-outline" d="M76,32 C82,42 85,54 85,66 C85,78 84,88 82,97 L73,97 C74,87 75,77 75,66 C75,54 73,44 68,34"/>
-    <path class="mm-outline" d="M35,92 C33,102 32,114 33,126 C34,136 35,142 36,148 L47,148 C47,140 47,130 47,120 C47,108 47,98 48,92"/>
-    <path class="mm-outline" d="M65,92 C67,102 68,114 67,126 C66,136 65,142 64,148 L53,148 C53,140 53,130 53,120 C53,108 53,98 52,92"/>`;
-  const front = `<svg viewBox="0 0 100 150">
-    <defs>
-      <linearGradient id="mmInactiveGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="var(--surface-3)"/>
-        <stop offset="100%" stop-color="color-mix(in oklch, var(--surface-3) 60%, var(--ink-faint))"/>
-      </linearGradient>
-      <linearGradient id="mmActiveGrad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="var(--strength-2)"/>
-        <stop offset="100%" stop-color="var(--strength)"/>
-      </linearGradient>
-    </defs>
-    ${body}
-    <ellipse class="mm-part${on('shoulders')}" cx="25" cy="33" rx="7.5" ry="8.5"/>
-    <ellipse class="mm-part${on('shoulders')}" cx="75" cy="33" rx="7.5" ry="8.5"/>
-    <path class="mm-part${on('chest')}" d="M50,29 C44,26 36,28 33,36 C31,43 34,49 42,48 C47,47 50,43 50,38 Z"/>
-    <path class="mm-part${on('chest')}" d="M50,29 C56,26 64,28 67,36 C69,43 66,49 58,48 C53,47 50,43 50,38 Z"/>
-    <rect class="mm-part${on('abs')}" x="42" y="50" width="6.5" height="7.5" rx="2"/>
-    <rect class="mm-part${on('abs')}" x="51.5" y="50" width="6.5" height="7.5" rx="2"/>
-    <rect class="mm-part${on('abs')}" x="42" y="59" width="6.5" height="7.5" rx="2"/>
-    <rect class="mm-part${on('abs')}" x="51.5" y="59" width="6.5" height="7.5" rx="2"/>
-    <rect class="mm-part${on('abs')}" x="42" y="68" width="6.5" height="8" rx="2"/>
-    <rect class="mm-part${on('abs')}" x="51.5" y="68" width="6.5" height="8" rx="2"/>
-    <path class="mm-part${on('biceps')}" d="M19,38 C16,43 15,50 16,57 C17,61 22,61 23,56 C24,50 24,43 26,37 Z"/>
-    <path class="mm-part${on('biceps')}" d="M81,38 C84,43 85,50 84,57 C83,61 78,61 77,56 C76,50 76,43 74,37 Z"/>
-    <path class="mm-part${on('forearms')}" d="M17,63 C16,71 16,80 18,89 L25,89 C25,80 25,71 25,63 Z"/>
-    <path class="mm-part${on('forearms')}" d="M83,63 C84,71 84,80 82,89 L75,89 C75,80 75,71 75,63 Z"/>
-    <path class="mm-part${on('quads')}" d="M35,96 C33,105 33,113 34,121 L46,121 C46,112 46,104 47,96 Z"/>
-    <path class="mm-part${on('quads')}" d="M65,96 C67,105 67,113 66,121 L54,121 C54,112 54,104 53,96 Z"/>
-    <path class="mm-part${on('calves')}" d="M34,127 C34,134 35,140 36,146 L46,146 C46,139 46,133 46,127 Z"/>
-    <path class="mm-part${on('calves')}" d="M66,127 C66,134 65,140 64,146 L54,146 C54,139 54,133 54,127 Z"/>
-    <path class="mm-line" d="M50,50 L50,76"/>
-    <path class="mm-line" d="M30,27 Q50,32 70,27"/>
-    <path class="mm-line" d="M38,80 Q50,84 62,80"/>
-  </svg>`;
-  const back = `<svg viewBox="0 0 100 150">
-    ${body}
-    <path class="mm-part${on('traps')}" d="M38,19 L50,29 L62,19 L64,33 L50,42 L36,33 Z"/>
-    <ellipse class="mm-part${on('shoulders_rear')}" cx="25" cy="33" rx="7.5" ry="8.5"/>
-    <ellipse class="mm-part${on('shoulders_rear')}" cx="75" cy="33" rx="7.5" ry="8.5"/>
-    <path class="mm-part${on('back')}" d="M36,34 C32,44 31,56 34,68 C36,75 40,80 46,82 L46,40 Z"/>
-    <path class="mm-part${on('back')}" d="M64,34 C68,44 69,56 66,68 C64,75 60,80 54,82 L54,40 Z"/>
-    <path class="mm-part${on('triceps')}" d="M19,38 C16,43 15,50 16,57 C17,61 22,61 23,56 C24,50 24,43 26,37 Z"/>
-    <path class="mm-part${on('triceps')}" d="M81,38 C84,43 85,50 84,57 C83,61 78,61 77,56 C76,50 76,43 74,37 Z"/>
-    <path class="mm-part${on('glutes')}" d="M35,90 C33,96 33,103 37,108 C42,112 58,112 63,108 C67,103 67,96 65,90 C56,87 44,87 35,90 Z"/>
-    <path class="mm-part${on('hamstrings')}" d="M35,111 C34,116 34,121 35,126 L45,126 C45,120 45,115 46,110 Z"/>
-    <path class="mm-part${on('hamstrings')}" d="M65,111 C66,116 66,121 65,126 L55,126 C55,120 55,115 54,110 Z"/>
-    <path class="mm-part${on('calves')}" d="M34,127 C34,134 35,140 36,146 L46,146 C46,139 46,133 46,127 Z"/>
-    <path class="mm-part${on('calves')}" d="M66,127 C66,134 65,140 64,146 L54,146 C54,139 54,133 54,127 Z"/>
-    <path class="mm-line" d="M50,30 L50,86"/>
-    <path class="mm-line" d="M38,90 Q50,94 62,90"/>
-  </svg>`;
-  return `<div class="muscle-map">${front}${back}</div>`;
-}
 
 /* ---- Equipment icons ---- */
 const EQUIP_ICON = {
@@ -3149,7 +3071,7 @@ function renderWorkoutSession(){
             <div class="faint">${targetSets}x${activeEx.reps} · descanso ${activeEx.rest}s ${best?`· PR ${best.weight}kg`:''}</div>
           </div>
         </div>
-        <span class="tag ${setsDone>=targetSets?'strength':''}" style="background:${setsDone>=targetSets?'':'var(--surface-2)'}">${setsDone}/${targetSets}</span>
+        <span class="tag" style="background:${setsDone>=targetSets?'var(--sleep)':'var(--surface-2)'};color:${setsDone>=targetSets?'#fff':''}">${setsDone}/${targetSets}</span>
       </div>
     </div>`;
   }).join('');
@@ -5385,7 +5307,7 @@ function openHistoryDayPeek(date){
     const modeLabel = hist.mode==='home' ? 'En casa' : hist.mode==='short' ? 'Corto' : 'Completo';
     const cardioBit = rawLog?.cardio?.minutes ? ` · Cardio: ${rawLog.cardio.minutes} min (${rawLog.cardio.type==='hiit'?'HIIT':'LISS'})` : '';
     const postCardioBit = rawLog?.postCardio?.minutes ? ` · Cardio post-entreno: ${rawLog.postCardio.minutes} min` : '';
-    body = `${muscleMap(hist.type==='cardio'?[]: [...new Set(exercisesForDay(hist.day).flatMap(e=>e.muscles))])}
+    body = `${dayPhotoImg(hist.day)}
     <div class="row between" style="margin:8px 0;flex-wrap:wrap;gap:6px"><span class="tag ${hist.type==='cardio'?'sleep':'strength'}">Día ${hist.day} · ${hist.label}</span><span class="tag ${hist.completed?'':'gamify'}">${hist.completed?'Completado':'En progreso'} · ${modeLabel}</span></div>
     ${(cardioBit||postCardioBit) ? `<p class="faint">${(cardioBit+postCardioBit).replace(/^ · /,'')}</p>` : ''}`;
   } else if(isFuture){
