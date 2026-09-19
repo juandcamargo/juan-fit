@@ -3774,12 +3774,14 @@ function logRecipe(recipeId){
 function logBatidoOption(variantId){
   const variant = BATIDO_OPTIONS.find(b=>b.id===variantId);
   if(!variant) return;
-  const iso = todayISO();
+  const iso = window.__loggingDate || todayISO();
   const nut = ensureNutritionDay(iso);
   nut.meals.push({id:uid(), name:variant.name, kcal:variant.kcal, p:variant.p, c:variant.c, f:variant.f, isPlan:true, slotId:'batido'});
   nut.planLogged.batido = variantId;
+  window.__loggingDate = null;
   saveState(); touchStreak(iso); addXP(5); checkBadges();
-  toast('Batido registrado', {icon:'utensils'});
+  closeSheet();
+  toast(iso===todayISO() ? 'Batido registrado' : `Batido registrado para ${fmtDateShort(iso)}`, {icon:'utensils'});
   render();
 }
 function openPlanAlternative(slotId){
@@ -3789,15 +3791,20 @@ function openPlanAlternative(slotId){
 function openRecipePicker(slotId){
   const slot = MEAL_SLOTS.find(s=>s.id===slotId) || MANUAL_SLOTS.find(s=>s.id===slotId);
   const items = STATE.recipes.filter(r=>r.slot===slotId);
+  const batidoHtml = slotId==='suplemento' ? BATIDO_OPTIONS.map(b=>`
+    <div class="swap-option" role="button" tabindex="0" data-action="log-batido-option" data-batido="${b.id}">
+      <div><b style="font-size:13.5px">${b.name}</b><div class="faint">${b.desc} · ${b.kcal} kcal · P${b.p} C${b.c} G${b.f}</div></div>
+    </div>`).join('') : '';
   openSheet(`
     <h3>¿Qué comiste en ${slot.name.toLowerCase()}?</h3>
     ${loggingDateNote()}
     <p class="faint">Elige algo que ya sueles comer, o añádelo manualmente si fue distinto.</p>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+      ${batidoHtml}
       ${items.length ? items.map(r=>`
         <div class="swap-option" role="button" tabindex="0" data-action="log-recipe" data-recipe="${r.id}">
           <div><b style="font-size:13.5px">${r.name}</b><div class="faint">${r.kcal} kcal · P${r.p} C${r.c} G${r.f}</div></div>
-        </div>`).join('') : `<p class="faint">Aún no tienes recetas guardadas para ${slot.name.toLowerCase()}.</p>`}
+        </div>`).join('') : (batidoHtml ? '' : `<p class="faint">Aún no tienes recetas guardadas para ${slot.name.toLowerCase()}.</p>`)}
     </div>
     <button class="btn light block" style="margin-top:14px" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Manualmente</button>
   `);
