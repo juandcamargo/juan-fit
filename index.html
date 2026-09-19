@@ -3639,6 +3639,20 @@ function pickManualSlot(slot){
   window.__manualSlot = slot;
   openFoodPhoto();
 }
+function openRecipeSlotPicker(){
+  openSheet(`
+    <h3>Elegir de mis recetas</h3>
+    ${loggingDateNote()}
+    <p class="faint">¿Qué tipo de comida es?</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+      ${MANUAL_SLOTS.map(s=>`<button class="btn light block" data-action="pick-recipe-slot" data-slot="${s.id}">${s.name}</button>`).join('')}
+    </div>
+  `);
+}
+function pickRecipeSlot(slotId){
+  window.__manualSlot = slotId;
+  openRecipePicker(slotId);
+}
 function openFoodPhoto(){
   const activeSlotId = window.__manualSlot || window.__currentPlanSlot;
   const slotObj = MANUAL_SLOTS.find(s=>s.id===activeSlotId) || MEAL_SLOTS.find(s=>s.id===activeSlotId);
@@ -3715,9 +3729,11 @@ function openLogMealForDay(date){
   openSheet(`
     <h3>Registrar comida de ${fmtDateShort(date)}</h3>
     <p class="faint">Se guardará como consumo de ese día, no de hoy.</p>
-    <div class="row" style="gap:10px;margin-top:14px">
-      <button class="btn light" style="flex:1" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
-      <button class="btn ghost" style="flex:1" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Manualmente</button>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+      <button class="btn light block" data-action="open-food-describe">${icon('pencil',15,{valign:'-3px'})} Describir plato</button>
+      <button class="btn ghost block" data-action="open-food-photo">${icon('pencil',15,{valign:'-3px'})} Manualmente</button>
+      <button class="btn ghost block" data-action="open-recipe-slot-picker">${icon('layers',15,{valign:'-3px'})} Elegir de mis recetas</button>
+      <button class="btn ghost block" data-action="open-extras-add">${icon('target',15,{valign:'-3px'})} Antojo</button>
     </div>
   `);
 }
@@ -3744,13 +3760,15 @@ function logPlanMeal(slotId){
 function logRecipe(recipeId){
   const r = STATE.recipes.find(x=>x.id===recipeId);
   if(!r) return;
-  const nut = ensureNutritionDay(todayISO());
+  const dateIso = window.__loggingDate || todayISO();
+  const nut = ensureNutritionDay(dateIso);
   nut.meals.push({id:uid(), name:r.name, kcal:r.kcal, p:r.p, c:r.c, f:r.f, isPlan:true, slotId:r.slot});
   nut.planLogged[r.slot] = 'custom';
   window.__currentPlanSlot = null;
-  saveState(); touchStreak(todayISO()); addXP(5); checkBadges();
+  window.__loggingDate = null;
+  saveState(); touchStreak(dateIso); addXP(5); checkBadges();
   closeSheet();
-  toast('Receta registrada', {icon:'utensils'});
+  toast(dateIso===todayISO() ? 'Receta registrada' : `Receta registrada para ${fmtDateShort(dateIso)}`, {icon:'utensils'});
   render();
 }
 function logBatidoOption(variantId){
@@ -3769,10 +3787,11 @@ function openPlanAlternative(slotId){
   openRecipePicker(slotId);
 }
 function openRecipePicker(slotId){
-  const slot = MEAL_SLOTS.find(s=>s.id===slotId);
+  const slot = MEAL_SLOTS.find(s=>s.id===slotId) || MANUAL_SLOTS.find(s=>s.id===slotId);
   const items = STATE.recipes.filter(r=>r.slot===slotId);
   openSheet(`
     <h3>¿Qué comiste en ${slot.name.toLowerCase()}?</h3>
+    ${loggingDateNote()}
     <p class="faint">Elige algo que ya sueles comer, o añádelo manualmente si fue distinto.</p>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
       ${items.length ? items.map(r=>`
@@ -3954,7 +3973,7 @@ function openCustomFoodForm(){
       <label class="field"><span>Fibra (g)</span><input type="number" id="cfFiber"></label>
     </div>
     <div class="grid2" style="margin-top:10px">
-      <label class="field"><span>Fecha</span><input type="date" id="cfDate" value="${todayISO()}"></label>
+      <label class="field"><span>Fecha</span><input type="date" id="cfDate" value="${window.__loggingDate || todayISO()}"></label>
       <label class="field"><span>Hora</span><input type="time" id="cfTime" value="${nowHHMM()}"></label>
     </div>
     <button class="btn primary block" style="margin-top:6px" data-action="save-custom-food">Guardar y registrar hoy</button>
@@ -3981,7 +4000,8 @@ function saveCustomFood(){
     favorite: false, photo: null,
   };
   STATE.extras.push(entry);
-  saveState(); touchStreak(todayISO());
+  window.__loggingDate = null;
+  saveState(); touchStreak(entry.date);
   closeSheet();
   toast('Alimento guardado y registrado', {icon:'check-circle'});
   render();
@@ -4057,7 +4077,7 @@ function openExtraForm(categoryId){
       </div>
     </div>
     <div class="grid2" style="margin-top:10px">
-      <label class="field"><span>Fecha</span><input type="date" id="exDate" value="${todayISO()}"></label>
+      <label class="field"><span>Fecha</span><input type="date" id="exDate" value="${window.__loggingDate || todayISO()}"></label>
       <label class="field"><span>Hora</span><input type="time" id="exTime" value="${nowHHMM()}"></label>
     </div>
     <label class="chk" style="margin-bottom:10px"><input type="checkbox" id="exFavorite"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span>Guardar como favorito</span></label>
@@ -4176,7 +4196,8 @@ function saveExtraForm(){
     withOthers: selVal('exWithOthers'), comment: $('#exComment')?.value||null,
   };
   STATE.extras.push(entry);
-  saveState(); touchStreak(todayISO());
+  window.__loggingDate = null;
+  saveState(); touchStreak(entry.date);
   openExtraConfirmation(entry);
 }
 function numOrNull(id){ const el=$('#'+id); if(!el||el.value==='') return null; return parseFloat(el.value); }
@@ -5515,6 +5536,8 @@ document.addEventListener('click', (e)=>{
     case 'open-food-photo': openFoodPhoto(); break;
     case 'open-food-manual': openFoodManualSlotPicker(); break;
     case 'pick-manual-slot': pickManualSlot(el.dataset.slot); break;
+    case 'open-recipe-slot-picker': openRecipeSlotPicker(); break;
+    case 'pick-recipe-slot': pickRecipeSlot(el.dataset.slot); break;
     case 'open-my-recipes': openMyRecipes(); break;
     case 'delete-recipe': deleteRecipe(el.dataset.recipe); break;
     case 'log-meal-for-day': openLogMealForDay(el.dataset.date); break;
