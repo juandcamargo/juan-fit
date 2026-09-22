@@ -4244,9 +4244,10 @@ function openAlcoholForm(){
       <select id="alMixer">${MIXER_OPTIONS.map(m=>`<option value="${m.id}">${m.name}</option>`).join('')}</select>
     </label>
     <div class="grid2">
+      <label class="field"><span>Fecha</span><input type="date" id="alDate" value="${window.__loggingDate || todayISO()}"></label>
       <label class="field"><span>Hora de inicio</span><input type="time" id="alStart" value="${nowHHMM()}"></label>
-      <label class="field"><span>Hora de fin (opcional)</span><input type="time" id="alEnd"></label>
     </div>
+    <label class="field"><span>Hora de fin (opcional)</span><input type="time" id="alEnd"></label>
     <label class="chk"><input type="checkbox" id="alAteFirst"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span>Había comido antes</span></label>
     <label class="chk" style="margin-top:8px"><input type="checkbox" id="alWater"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span>Intercalé agua</span></label>
     <label class="chk" style="margin-top:8px"><input type="checkbox" id="alEnergy"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span>Consumí bebidas energéticas o cafeína junto con el alcohol</span></label>
@@ -4300,8 +4301,9 @@ function saveAlcoholExtra(){
   const alcoholKcal = Math.round(pureG*7);
   const otherKcal = Math.max(0, kcalTotal-alcoholKcal);
   const standardDrinks = round1(pureG/standardDrinkGrams());
+  const entryDate = $('#alDate').value||window.__loggingDate||todayISO();
   const entry = {
-    id: uid(), date: todayISO(), time: $('#alStart').value||nowHHMM(),
+    id: uid(), date: entryDate, time: $('#alStart').value||nowHHMM(),
     group:'alcohol', category:'alcohol', name: t.name + (($('#alBrand').value)?' · '+$('#alBrand').value:''),
     kcal: kcalTotal, carbs:null, sugar:null, addedSugar:null, fat:0, sat:0, protein:0, sodium:0, fiber:0,
     isEstimate:true,
@@ -4315,7 +4317,8 @@ function saveAlcoholExtra(){
     },
   };
   STATE.extras.push(entry);
-  saveState(); touchStreak(todayISO());
+  window.__loggingDate = null;
+  saveState(); touchStreak(entryDate);
   openExtraConfirmation(entry);
 }
 
