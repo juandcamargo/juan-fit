@@ -1241,31 +1241,31 @@ const DEFAULT_MEAL_PLAN = {
     desayuno: {name:'Huevos fritos, arepa y aguacate', desc:'3 huevos fritos, 1 arepa de 90g y 50g de aguacate. Usar máximo 5ml de aceite para los huevos', kcal:528, p:34, c:44, f:24},
     almuerzo: {name:'Pasta con carne asada', desc:'150g de carne asada magra, 110g de pasta (peso en seco), salsa de tomate natural, 30g de aguacate y 5g de chimichurri', kcal:790, p:53, c:93, f:23},
     batido: {name:'Batido post-entreno', desc:'1½ scoops de proteína (54g de polvo) en agua', kcal:220, p:33, c:10, f:5},
-    cena: {name:'Pechuga de pollo con pasta', desc:'100g de pechuga de pollo, 45g de pasta (peso en seco), salsa de tomate, champiñones, espinaca y 3ml de aceite de oliva', kcal:405, p:36, c:42, f:10},
+    cena: {name:'Pollo a la plancha con pasta', desc:'100g de pechuga de pollo a la plancha, 45g de pasta (peso en seco) y salsa de tomate natural', kcal:317, p:30, c:39.5, f:3.5},
   },
   martes: {
     desayuno: {name:'Huevos pericos, arepa y aguacate', desc:'3 huevos revueltos con tomate y cebolla, 1 arepa de 90g y 50g de aguacate. Usar máximo 5ml de aceite', kcal:543, p:35, c:47, f:24},
     almuerzo: {name:'Cordon Bleu con arroz', desc:'Cordon Bleu de 140g de pechuga, 260g de arroz blanco cocido, ensalada, rúgula, tomates cherry y 30g de aguacate. Preparar al horno o airfryer, sin aceite adicional', kcal:780, p:43, c:88, f:27},
     batido: {name:'Batido post-entreno', desc:'1½ scoops de proteína (54g de polvo) en agua', kcal:220, p:33, c:10, f:5},
-    cena: {name:'Cordon Bleu con ensalada', desc:'Cordon Bleu de 120g de pechuga, ensalada grande con rúgula, tomate cherry y 40g de aguacate', kcal:390, p:34, c:18, f:20},
+    cena: {name:'Pollo a la plancha con papa criolla', desc:'150g de pechuga a la plancha, 150g de papa criolla y ensalada de tomate y lechuga', kcal:332, p:37.7, c:33.4, f:4.3},
   },
   miercoles: {
     desayuno: {name:'Huevos fritos, arepa y aguacate', desc:'3 huevos fritos, 1 arepa de 90g y 50g de aguacate. Usar máximo 5ml de aceite', kcal:528, p:34, c:44, f:24},
     almuerzo: {name:'Carne y papa', desc:'150g de carne asada, 400g de papa en airfryer y 100g de guacamole. No agregar aceite adicional a las papas', kcal:770, p:52, c:77, f:29},
     batido: {name:'Batido post-entreno', desc:'1½ scoops de proteína (54g de polvo) en agua', kcal:220, p:33, c:10, f:5},
-    cena: {name:'Carne y papa', desc:'120g de carne asada, 200g de papa en airfryer y ensalada sin aderezo calórico', kcal:425, p:40, c:40, f:11},
+    cena: {name:'Carne asada con papa pastusa y aguacate', desc:'120g de carne asada, 150g de papa pastusa y medio aguacate', kcal:356, p:30.4, c:31.3, f:13},
   },
   jueves: {
     desayuno: {name:'Huevos pericos, arepa y aguacate', desc:'3 huevos revueltos con tomate y cebolla, 1 arepa de 90g y 50g de aguacate. Usar máximo 5ml de aceite', kcal:543, p:35, c:47, f:24},
     almuerzo: {name:'Sudado de carne', desc:'Sudado con 150g de carne, 180g de papa, 180g de arroz blanco cocido, 40g de aguacate y hogao', kcal:750, p:51, c:85, f:21},
     batido: {name:'Batido post-entreno', desc:'1½ scoops de proteína (54g de polvo) en agua', kcal:220, p:33, c:10, f:5},
-    cena: {name:'Sudado de carne', desc:'Sudado con 120g de carne, 100g de papa, 80g de arroz blanco cocido y hogao', kcal:440, p:38, c:43, f:12},
+    cena: {name:'Sudado de carne con papa y arroz', desc:'Sudado con 120g de carne, 100g de papa, 80g de arroz blanco cocido y hogao', kcal:440, p:38, c:43, f:12},
   },
   viernes: {
     desayuno: {name:'Huevos fritos, arepa y aguacate', desc:'3 huevos fritos, 1 arepa de 90g y 50g de aguacate. Usar máximo 5ml de aceite', kcal:528, p:34, c:44, f:24},
     almuerzo: {name:'Frijoles y carne asada', desc:'150g de carne asada, 100g de fríjoles cocidos, 200g de arroz blanco cocido y 40g de aguacate', kcal:750, p:57, c:82, f:20},
     batido: {name:'Batido post-entreno', desc:'1½ scoops de proteína (54g de polvo) en agua', kcal:220, p:33, c:10, f:5},
-    cena: {name:'Pollo, arroz y aguacate', desc:'110g de pechuga de pollo, 120g de arroz blanco cocido, 40g de aguacate y ensalada', kcal:430, p:40, c:43, f:10},
+    cena: {name:'Arroz con pollo', desc:'140g de pollo, 100g de arroz y 100g de verduras (zanahoria, arveja, pimentón)', kcal:389, p:36.6, c:38, f:8.7},
   },
 };
 const MEAL_SLOTS = [
@@ -1442,7 +1442,32 @@ function seedPlanRecipes(){
   STATE.recipesSeeded = true;
   saveState();
 }
+/* Octubre 2026: las cenas del plan cambiaron. Las cenas anteriores se conservan como recetas guardadas. */
+const OLD_CENAS = [
+  {name:'Pechuga de pollo con pasta', desc:'100g de pechuga de pollo, 45g de pasta (peso en seco), salsa de tomate, champiñones, espinaca y 3ml de aceite de oliva', kcal:405, p:36, c:42, f:10},
+  {name:'Cordon Bleu con ensalada', desc:'Cordon Bleu de 120g de pechuga, ensalada grande con rúgula, tomate cherry y 40g de aguacate', kcal:390, p:34, c:18, f:20},
+  {name:'Carne y papa', desc:'120g de carne asada, 200g de papa en airfryer y ensalada sin aderezo calórico', kcal:425, p:40, c:40, f:11},
+  {name:'Sudado de carne', desc:'Sudado con 120g de carne, 100g de papa, 80g de arroz blanco cocido y hogao', kcal:440, p:38, c:43, f:12},
+  {name:'Pollo, arroz y aguacate', desc:'110g de pechuga de pollo, 120g de arroz blanco cocido, 40g de aguacate y ensalada', kcal:430, p:40, c:43, f:10},
+];
+function migrateCenas(){
+  if(STATE.cenasV2) return;
+  OLD_CENAS.forEach(d=>{
+    if(!STATE.recipes.some(r=>r.slot==='cena' && r.name===d.name)){
+      STATE.recipes.push({id:uid(), name:d.name, slot:'cena', kcal:d.kcal, p:d.p, c:d.c, f:d.f, desc:d.desc});
+    }
+  });
+  if(STATE.mealPlan){
+    ['lunes','martes','miercoles','jueves','viernes'].forEach((day,i)=>{
+      const cur = STATE.mealPlan[day]?.cena;
+      if(cur && cur.name===OLD_CENAS[i].name && cur.kcal===OLD_CENAS[i].kcal) STATE.mealPlan[day].cena = {...DEFAULT_MEAL_PLAN[day].cena};
+    });
+  }
+  STATE.cenasV2 = true;
+  saveState();
+}
 seedPlanRecipes();
+migrateCenas();
 function loadState(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
@@ -1499,6 +1524,7 @@ async function hydrateFromCloud(){
       merged.profile = Object.assign(defaultState().profile, parsed.profile||{});
       merged.trainingMeta = Object.assign(defaultState().trainingMeta, parsed.trainingMeta||{});
       STATE = merged;
+      migrateCenas();
       try{ localStorage.setItem(STORE_KEY, res.value); }catch(e){}
       render();
     }
@@ -1517,6 +1543,7 @@ async function hydrateFromSupabase(){
       merged.profile = Object.assign(defaultState().profile, parsed.profile||{});
       merged.trainingMeta = Object.assign(defaultState().trainingMeta, parsed.trainingMeta||{});
       STATE = merged;
+      migrateCenas();
       try{ localStorage.setItem(STORE_KEY, JSON.stringify(STATE)); }catch(e){}
       render();
     }
