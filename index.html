@@ -1507,7 +1507,7 @@ function saveState(){
     __supabaseSaveTimer = setTimeout(()=>{
       supabaseClient.from('app_state')
         .upsert({user_id: supabaseUser.id, data: STATE, updated_at: new Date().toISOString()})
-        .then(({error})=>{ if(error) console.error('Error guardando en Supabase:', error.message); });
+        .then(({error})=>{ __cloudSyncFailed = !!error; if(error) console.error('Error guardando en Supabase:', error.message); });
     }, 700);
   }
 }
@@ -1552,10 +1552,32 @@ async function hydrateFromSupabase(){
 /* ---- Autenticación Supabase (magic link por correo) ---- */
 async function initSupabaseAuth(){
   if(!supabaseClient) return;
-  const {data:{session}} = await supabaseClient.auth.getSession();
-  supabaseUser = session?.user || null;
+  supabaseUser = await resolveAuthUser();
   supabaseClient.auth.onAuthStateChange(handleAuthEvent);
   renderAuthGate();
+  window.addEventListener('online', retryCloudSync);
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) retryCloudSync(); });
+}
+/* Si la renovación del token falla por red (muy común en el celular), la librería responde "sin sesión"
+   aunque la sesión guardada siga válida. Eso NO es un cierre de sesión: se usa el usuario guardado. */
+const SUPABASE_AUTH_KEY = SUPABASE_URL ? 'sb-'+new URL(SUPABASE_URL).hostname.split('.')[0]+'-auth-token' : null;
+function storedSupabaseUser(){
+  try{
+    const s = JSON.parse(localStorage.getItem(SUPABASE_AUTH_KEY)||'null');
+    return (s && s.refresh_token && s.user) ? s.user : null;
+  }catch(e){ return null; }
+}
+async function resolveAuthUser(){
+  try{
+    const {data:{session}, error} = await supabaseClient.auth.getSession();
+    if(session?.user) return session.user;
+    return error ? storedSupabaseUser() : null;
+  }catch(e){ return storedSupabaseUser(); }
+}
+let __cloudSyncFailed = false;
+function retryCloudSync(){
+  if(!supabaseUser) return;
+  supabaseClient.auth.getSession().then(()=>{ if(__cloudSyncFailed) saveState(); }).catch(()=>{});
 }
 /* Solo un SIGNED_OUT confirmado (la sesión ya no existe al volver a leerla) cierra la sesión en pantalla.
    Eventos sin sesión por una renovación de token que falló o se cruzó con otra no deben botar al usuario;
@@ -1570,11 +1592,8 @@ function handleAuthEvent(event, session){
   }
   if(event !== 'SIGNED_OUT') return;
   setTimeout(async ()=>{
-    try{
-      const {data:{session:current}} = await supabaseClient.auth.getSession();
-      if(current?.user){ supabaseUser = current.user; renderAuthGate(); return; }
-    }catch(e){ return; }
-    supabaseUser = null;
+    const current = await resolveAuthUser();
+    supabaseUser = current;
     renderAuthGate();
   }, 0);
 }
