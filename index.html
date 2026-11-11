@@ -1554,13 +1554,29 @@ async function initSupabaseAuth(){
   if(!supabaseClient) return;
   const {data:{session}} = await supabaseClient.auth.getSession();
   supabaseUser = session?.user || null;
-  supabaseClient.auth.onAuthStateChange((_event, session)=>{
-    const wasSignedIn = !!supabaseUser;
-    supabaseUser = session?.user || null;
-    renderAuthGate();
-    if(supabaseUser && !wasSignedIn) hydrateFromSupabase();
-  });
+  supabaseClient.auth.onAuthStateChange(handleAuthEvent);
   renderAuthGate();
+}
+/* Solo un SIGNED_OUT confirmado (la sesión ya no existe al volver a leerla) cierra la sesión en pantalla.
+   Eventos sin sesión por una renovación de token que falló o se cruzó con otra no deben botar al usuario;
+   y no se llama a otras funciones de Supabase dentro del callback (puede bloquearlas), por eso el setTimeout. */
+function handleAuthEvent(event, session){
+  if(session?.user){
+    const wasSignedIn = !!supabaseUser;
+    supabaseUser = session.user;
+    renderAuthGate();
+    if(!wasSignedIn) setTimeout(hydrateFromSupabase, 0);
+    return;
+  }
+  if(event !== 'SIGNED_OUT') return;
+  setTimeout(async ()=>{
+    try{
+      const {data:{session:current}} = await supabaseClient.auth.getSession();
+      if(current?.user){ supabaseUser = current.user; renderAuthGate(); return; }
+    }catch(e){ return; }
+    supabaseUser = null;
+    renderAuthGate();
+  }, 0);
 }
 function renderAuthGate(){
   const gate = $('#authGate');
@@ -1573,7 +1589,7 @@ async function requestMagicLink(){
   if(!email){ statusEl.textContent = 'Escribe tu correo primero.'; return; }
   statusEl.textContent = 'Enviando enlace...';
   const {error} = await supabaseClient.auth.signInWithOtp({email, options:{emailRedirectTo: window.location.href}});
-  statusEl.textContent = error ? ('No se pudo enviar: '+error.message) : 'Listo — revisa tu correo y toca el enlace para entrar. Puedes cerrar esta pestaña después.';
+  statusEl.textContent = error ? (/rate limit/i.test(error.message) ? 'Se enviaron demasiados enlaces seguidos. Espera un rato (hasta una hora) y vuelve a intentar; si ya te llegó uno, úsalo.' : 'No se pudo enviar: '+error.message) : 'Listo — revisa tu correo y toca el enlace para entrar. Puedes cerrar esta pestaña después.';
 }
 async function signOutSupabase(){
   if(!supabaseClient) return;
